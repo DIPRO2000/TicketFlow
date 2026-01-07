@@ -1,0 +1,69 @@
+{
+  "name": "Event",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Event name"
+    },
+    "description": {
+      "type": "string",
+      "description": "Event description"
+    },
+    "date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Event date and time"
+    },
+    "venue": {
+      "type": "string",
+      "description": "Event venue/location"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "published",
+        "cancelled",
+        "completed"
+      ],
+      "default": "draft"
+    },
+    "cover_image": {
+      "type": "string",
+      "description": "Cover image URL"
+    },
+    "ticket_types": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "sold": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "organizer_id": {
+      "type": "string",
+      "description": "Reference to organizer user"
+    }
+  },
+  "required": [
+    "name",
+    "date",
+    "venue"
+  ]
+}
