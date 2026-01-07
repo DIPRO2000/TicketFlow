@@ -41,9 +41,36 @@ export default function Login() {
       return;
     }
 
+    // Set loading BEFORE the fetch
     setIsLoading(true);
-    // Redirect to login page
-    navigate(("/Dashboard"));
+
+    try {
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/orglogin`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password
+        }),
+        credentials: "include" // This requires proper CORS config
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.message || "Login failed. Please try again.");
+        return;
+      }
+
+      // Login successful
+      navigate("/Dashboard");
+      
+    } catch (error) {
+      setError("Network error. Please try again.");
+      console.error("Login error:", error);
+    } finally {
+      setIsLoading(false); // Always reset loading state
+    }
   };
 
   return (
