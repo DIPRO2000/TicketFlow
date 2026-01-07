@@ -35,15 +35,9 @@ export const registerOrganizer = async (req, res) => {
 
 // Organizer Login
 export const loginOrganizer = async (req, res) => {
-    const { username,email, password } = req.body;
-    console.log(req.body);
+    const { email, password } = req.body;
 
-    if(!username && email==null)
-    {
-        return res.status(400).json({ message: "No username provided" });
-    }
-    else if(username==null && !email)
-    {
+    if (!email) {
         return res.status(400).json({ message: "No email provided" });
     }
 
@@ -52,12 +46,10 @@ export const loginOrganizer = async (req, res) => {
     }
 
     try {
-        const value=(email==null) ? username : email;
-        const para=(email==null) ? "username" : "email";
-        const existingOrganizer = await Organizer.findOne({ [para]:value });
+        const existingOrganizer = await Organizer.findOne({ email:email });
         //console.log(existingOrganizer);
         if (!existingOrganizer) {
-            return res.status(404).json({ message: `Incorrect ${para} provided` });
+            return res.status(404).json({ message: `Incorrect ${email} provided` });
         }
 
         const passwordcheck=await bcrypt.compare(password,existingOrganizer.password)
@@ -77,9 +69,15 @@ export const loginOrganizer = async (req, res) => {
             expiresIn: "1h"
         });
 
+        res.cookie("organizer_token", token, {
+            httpOnly: true,        // JS cannot access it (XSS protection)
+            secure: process.env.NODE_ENV === "production", // HTTPS only in prod
+            sameSite: "strict",    // CSRF protection
+            maxAge: 60 * 60 * 1000 // 1 hour
+        });
+
         return res.status(200).json({
             message: "Login successful",
-            token
         });
 
     } catch (err) {
