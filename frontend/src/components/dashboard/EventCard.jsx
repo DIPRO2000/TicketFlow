@@ -11,8 +11,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export default function EventCard({ event, onEdit, onDelete }) {
-  const totalTickets = event.ticket_types?.reduce((sum, t) => sum + (t.quantity || 0), 0) || 0;
-  const soldTickets = event.ticket_types?.reduce((sum, t) => sum + (t.sold || 0), 0) || 0;
+  const totalTickets = event.tickets?.reduce((sum, t) => sum + (t.quantity || 0), 0) || 0;
+  const soldTickets = event.tickets?.reduce((sum, t) => sum + (t.sold || 0), 0) || 0;
   const soldPercentage = totalTickets > 0 ? Math.round((soldTickets / totalTickets) * 100) : 0;
 
   return (
@@ -37,7 +37,7 @@ export default function EventCard({ event, onEdit, onDelete }) {
       <div className="p-5">
         <div className="flex items-start justify-between mb-3">
           <h3 className="font-semibold text-slate-900 text-lg leading-tight line-clamp-1">
-            {event.name}
+            {event.title}
           </h3>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -67,11 +67,11 @@ export default function EventCard({ event, onEdit, onDelete }) {
         <div className="space-y-2 mb-4">
           <div className="flex items-center text-sm text-slate-500">
             <Calendar className="w-4 h-4 mr-2 flex-shrink-0" />
-            <span>{format(new Date(event.date), "MMM d, yyyy · h:mm a")}</span>
+            <span>{format(new Date(event.startDate), "MMM d, yyyy · h:mm a")}</span>
           </div>
           <div className="flex items-center text-sm text-slate-500">
             <MapPin className="w-4 h-4 mr-2 flex-shrink-0" />
-            <span className="truncate">{event.venue}</span>
+            <span className="truncate">{event.venue.name}{` `}{event.venue.address}{` `}{event.venue.city}</span>
           </div>
         </div>
         

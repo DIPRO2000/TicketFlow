@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { createPageUrl } from "@/utils";
 import { 
   Plus, 
   Search, 
@@ -20,16 +18,19 @@ import { toast } from "sonner";
 import EventCard from "@/components/dashboard/EventCard";
 import EventForm from "@/components/forms/EventForm";
 import ConfirmDialog from "@/components/modals/ConfirmDialog";
+import { set } from "date-fns";
 
 export default function Events() {
   const [showForm, setShowForm] = useState(false);
+  const [events, setEvents] = useState([]);
   const [editingEvent, setEditingEvent] = useState(null);
   const [deleteEvent, setDeleteEvent] = useState(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [viewMode, setViewMode] = useState("grid");
+  const [isLoading, setIsLoading] = useState(true);
 
-  const queryClient = useQueryClient();
+  // const queryClient = useQueryClient();
 
   // Check URL for create param
   useEffect(() => {
@@ -39,45 +40,69 @@ export default function Events() {
     }
   }, []);
 
-  const { data: events = [], isLoading } = useQuery({
-    queryKey: ["events"],
-    queryFn: () => base44.entities.Event.list("-created_date", 100)
-  });
+  useEffect(() => {
+    // Fetch events from backend API
+    const fetchEvents = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch(`http://localhost:3000/api/event/getevents/iem_001`);
+        const data = await response.json();
 
-  const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Event.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["events"] });
-      setShowForm(false);
-      toast.success("Event created successfully!");
+        if (data.success) {
+          setEvents(data.events);
+        } else {
+          console.error("Failed to fetch events:", data.message);
+        }
+      } 
+      catch (error) {
+        console.error("Error fetching events:", error);
+      } finally {
+        setIsLoading(false);
+      }
     }
-  });
 
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Event.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["events"] });
-      setShowForm(false);
-      setEditingEvent(null);
-      toast.success("Event updated successfully!");
-    }
-  });
+    fetchEvents();
+  }, []);
 
-  const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Event.delete(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["events"] });
-      setDeleteEvent(null);
-      toast.success("Event deleted successfully!");
-    }
-  });
+  // const { data: events = [], isLoading } = useQuery({
+  //   queryKey: ["events"],
+  //   queryFn: () => base44.entities.Event.list("-created_date", 100)
+  // });
+
+  // const createMutation = useMutation({
+  //   mutationFn: (data) => base44.entities.Event.create(data),
+  //   onSuccess: () => {
+  //     queryClient.invalidateQueries({ queryKey: ["events"] });
+  //     setShowForm(false);
+  //     toast.success("Event created successfully!");
+  //   }
+  // });
+
+  // const updateMutation = useMutation({
+  //   mutationFn: ({ id, data }) => base44.entities.Event.update(id, data),
+  //   onSuccess: () => {
+  //     queryClient.invalidateQueries({ queryKey: ["events"] });
+  //     setShowForm(false);
+  //     setEditingEvent(null);
+  //     toast.success("Event updated successfully!");
+  //   }
+  // });
+
+  // const deleteMutation = useMutation({
+  //   mutationFn: (id) => base44.entities.Event.delete(id),
+  //   onSuccess: () => {
+  //     queryClient.invalidateQueries({ queryKey: ["events"] });
+  //     setDeleteEvent(null);
+  //     toast.success("Event deleted successfully!");
+  //   }
+  // });
 
   const handleSubmit = (data) => {
-    if (editingEvent) {
-      updateMutation.mutate({ id: editingEvent.id, data });
-    } else {
-      createMutation.mutate(data);
-    }
+    // if (editingEvent) {
+    //   updateMutation.mutate({ id: editingEvent.id, data });
+    // } else {
+    //   createMutation.mutate(data);
+    // }
   };
 
   const handleEdit = (event) => {
@@ -91,7 +116,7 @@ export default function Events() {
   };
 
   const filteredEvents = events.filter(event => {
-    const matchesSearch = event.name?.toLowerCase().includes(search.toLowerCase()) ||
+    const matchesSearch = event.title?.toLowerCase().includes(search.toLowerCase()) ||
       event.venue?.toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter === "all" || event.status === statusFilter;
     return matchesSearch && matchesStatus;
@@ -170,7 +195,7 @@ export default function Events() {
         }>
           {filteredEvents.map(event => (
             <EventCard 
-              key={event.id} 
+              key={event._id} 
               event={event} 
               onEdit={handleEdit}
               onDelete={setDeleteEvent}
@@ -210,7 +235,7 @@ export default function Events() {
             event={editingEvent}
             onSubmit={handleSubmit}
             onCancel={handleCloseForm}
-            isLoading={createMutation.isPending || updateMutation.isPending}
+            isLoading={isLoading}
           />
         </SheetContent>
       </Sheet>

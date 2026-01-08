@@ -9,6 +9,7 @@ import Register from './pages/Register.jsx'
 import Login from './pages/Login.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import Layout from './Layout'
+import Events from './pages/Events'
 
 function App() {
   
@@ -20,6 +21,7 @@ function App() {
 
       <Route element={<Layout />}>
         <Route path="/Dashboard" element={<Dashboard />} />
+        <Route path="/Events" element={<Events/>}/>
       </Route>
     </Routes>
   )
