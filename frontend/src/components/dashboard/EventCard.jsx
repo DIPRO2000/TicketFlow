@@ -1,7 +1,6 @@
 import { Calendar, MapPin, Users, MoreVertical, Edit, Trash2, Eye } from "lucide-react";
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
-import { createPageUrl } from "@/utils";
 import StatusBadge from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/button";
 import {
@@ -48,7 +47,7 @@ export default function EventCard({ event, onEdit, onDelete }) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem asChild>
-                <Link to={createPageUrl("EventDetails") + `?id=${event.id}`}>
+                <Link to={("EventDetails") + `?id=${event.id}`}>
                   <Eye className="w-4 h-4 mr-2" /> View Details
                 </Link>
               </DropdownMenuItem>

@@ -7,7 +7,8 @@ import './App.css'
 import Landing from './pages/Landing.jsx'
 import Register from './pages/Register.jsx'
 import Login from './pages/Login.jsx'
-// import Dashboard from './pages/Dashboard.jsx'
+import Dashboard from './pages/Dashboard.jsx'
+import Layout from './Layout'
 
 function App() {
   
@@ -16,9 +17,14 @@ function App() {
       <Route path="/" element={<Landing />} />
       <Route path="/register" element={<Register />} />
       <Route path="/login" element={<Login />} />
-      {/* <Route path="/dashboard" element={<Dashboard />} /> */}
+
+      <Route element={<Layout />}>
+        <Route path="/Dashboard" element={<Dashboard />} />
+      </Route>
     </Routes>
   )
 }
 
 export default App
+
+  

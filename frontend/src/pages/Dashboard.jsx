@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { createPageUrl } from "@/utils";
 import { 
   Calendar, 
   Ticket, 
@@ -17,23 +15,97 @@ import { format } from "date-fns";
 import StatsCard from "@/components/dashboard/StatsCard";
 import EventCard from "@/components/dashboard/EventCard";
 import StatusBadge from "@/components/ui/StatusBadge";
+import Papa from "papaparse";
 
 export default function Dashboard() {
-  const { data: events = [], isLoading: eventsLoading } = useQuery({
-    queryKey: ["events"],
-    queryFn: () => base44.entities.Event.list("-created_date", 50)
-  });
+  // const { data: events = [], isLoading: eventsLoading } = useQuery({
+  //   queryKey: ["events"],
+  //   queryFn: () => base44.entities.Event.list("-created_date", 50)
+  // });
 
-  const { data: tickets = [], isLoading: ticketsLoading } = useQuery({
-    queryKey: ["tickets"],
-    queryFn: () => base44.entities.Ticket.list("-created_date", 100)
-  });
+  // const { data: tickets = [], isLoading: ticketsLoading } = useQuery({
+  //   queryKey: ["tickets"],
+  //   queryFn: () => base44.entities.Ticket.list("-created_date", 100)
+  // });
+
+  // const stats = {
+  //   totalEvents: events.length,
+  //   ticketsSold: tickets.length,
+  //   checkedIn: tickets.filter(t => t.status === "used").length,
+  //   revenue: tickets.reduce((sum, t) => sum + (t.price || 0), 0)
+  // };
+
+  // const recentEvents = events.slice(0, 3);
+  // const recentTickets = tickets.slice(0, 5);
+
+  const [events, setEvents] = useState([]);
+  const [tickets, setTickets] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [eventsLoading, setEventsLoading] = useState(true);
+  const [ticketsLoading, setTicketsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCSVData = async () => {
+      try {
+        setLoading(true);
+        setEventsLoading(true);
+        setTicketsLoading(true);
+        
+        // Fetch and parse events.csv
+        const eventsResponse = await fetch('/events.csv');
+        const eventsText = await eventsResponse.text();
+        
+        Papa.parse(eventsText, {
+          header: true,
+          skipEmptyLines: true,
+          complete: (results) => {
+            setEvents(results.data);
+          },
+          error: (err) => {
+            console.error('Error parsing events CSV:', err);
+            setError('Failed to load events data');
+          }
+        });
+        
+        // Fetch and parse tickets.csv
+        const ticketsResponse = await fetch('/tickets.csv');
+        const ticketsText = await ticketsResponse.text();
+        
+        Papa.parse(ticketsText, {
+          header: true,
+          skipEmptyLines: true,
+          complete: (results) => {
+            setTickets(results.data);
+          },
+          error: (err) => {
+            console.error('Error parsing tickets CSV:', err);
+            setError('Failed to load tickets data');
+          }
+        });
+        
+      } catch (err) {
+        console.error('Error fetching CSV files:', err);
+        setError('Failed to load data');
+      } finally {
+        setLoading(false);
+        setEventsLoading(false);
+        setTicketsLoading(false);
+      }
+    };
+    
+    fetchCSVData();
+  }, []);
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error}</div>;
 
   const stats = {
     totalEvents: events.length,
     ticketsSold: tickets.length,
     checkedIn: tickets.filter(t => t.status === "used").length,
-    revenue: tickets.reduce((sum, t) => sum + (t.price || 0), 0)
+    // Make sure to parse price as number
+    revenue: tickets.reduce((sum, t) => sum + (parseFloat(t.price) || 0), 0)
   };
 
   const recentEvents = events.slice(0, 3);
@@ -47,7 +119,7 @@ export default function Dashboard() {
           <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
           <p className="text-slate-500 mt-1">Welcome back! Here's your overview.</p>
         </div>
-        <Link to={createPageUrl("Events") + "?create=true"}>
+        <Link to={("Events") + "?create=true"}>
           <Button className="bg-slate-900 hover:bg-slate-800">
             <Plus className="w-4 h-4 mr-2" /> Create Event
           </Button>
@@ -86,7 +158,7 @@ export default function Dashboard() {
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-slate-900">Recent Events</h2>
-          <Link to={createPageUrl("Events")} className="text-sm text-slate-600 hover:text-slate-900 flex items-center">
+          <Link to={("Events")} className="text-sm text-slate-600 hover:text-slate-900 flex items-center">
             View all <ArrowRight className="w-4 h-4 ml-1" />
           </Link>
         </div>
@@ -99,16 +171,16 @@ export default function Dashboard() {
           </div>
         ) : recentEvents.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {recentEvents.map(event => (
+            {/* {recentEvents.map(event => (
               <EventCard key={event.id} event={event} />
-            ))}
+            ))} */}
           </div>
         ) : (
           <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
             <Calendar className="w-12 h-12 text-slate-300 mx-auto mb-4" />
             <h3 className="font-medium text-slate-900 mb-2">No events yet</h3>
             <p className="text-slate-500 text-sm mb-4">Create your first event to get started</p>
-            <Link to={createPageUrl("Events") + "?create=true"}>
+            <Link to={("/Events") + "?create=true"}>
               <Button className="bg-slate-900 hover:bg-slate-800">
                 <Plus className="w-4 h-4 mr-2" /> Create Event
               </Button>
@@ -121,7 +193,7 @@ export default function Dashboard() {
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-slate-900">Recent Tickets</h2>
-          <Link to={createPageUrl("Tickets")} className="text-sm text-slate-600 hover:text-slate-900 flex items-center">
+          <Link to={("Tickets")} className="text-sm text-slate-600 hover:text-slate-900 flex items-center">
             View all <ArrowRight className="w-4 h-4 ml-1" />
           </Link>
         </div>
@@ -151,10 +223,10 @@ export default function Dashboard() {
                     </div>
                     <div className="flex items-center gap-4">
                       <StatusBadge status={ticket.status} />
-                      <span className="text-sm text-slate-500 flex items-center">
+                      {/* <span className="text-sm text-slate-500 flex items-center">
                         <Clock className="w-3.5 h-3.5 mr-1" />
                         {format(new Date(ticket.created_date), "MMM d")}
-                      </span>
+                      </span> */}
                     </div>
                   </div>
                 </div>
