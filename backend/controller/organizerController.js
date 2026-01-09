@@ -85,3 +85,19 @@ export const loginOrganizer = async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 };
+
+
+// Organizer Profile Retrieval(like id,name,email)
+export const getOrganizerProfile = async (req,res) => {
+    try {
+        const organizer = await Organizer.findById(req.user.id).select('-password');
+        if (!organizer) {
+            return res.status(404).json({ message: "Organizer not found" });
+        }
+
+        return res.status(200).json({ organizer });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ message: "Server error" });
+    }
+}

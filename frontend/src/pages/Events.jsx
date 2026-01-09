@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useNavigate,useOutletContext } from "react-router-dom";
+import Cookies from "js-cookie";
 import { 
   Plus, 
   Search, 
@@ -30,6 +31,8 @@ export default function Events() {
   const [viewMode, setViewMode] = useState("grid");
   const [isLoading, setIsLoading] = useState(true);
 
+  const { OrganizerData }=useOutletContext();
+
   // const queryClient = useQueryClient();
 
   // Check URL for create param
@@ -45,7 +48,8 @@ export default function Events() {
     const fetchEvents = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch(`http://localhost:3000/api/event/getevents/iem_001`);
+        console.log(OrganizerData)
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/event/getevents/${OrganizerData?._id}`);
         const data = await response.json();
 
         if (data.success) {
@@ -62,7 +66,7 @@ export default function Events() {
     }
 
     fetchEvents();
-  }, []);
+  }, [OrganizerData]);
 
   // const { data: events = [], isLoading } = useQuery({
   //   queryKey: ["events"],

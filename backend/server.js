@@ -8,7 +8,6 @@ import cookieParser from "cookie-parser";
 //all imports from routes
 import organizerRegRoute from "./routes/organizerReg.js";
 import organizerforgotpass from "./routes/organizerForgotpassword.js";
-import { verifyToken } from "./middleware/auth.js";
 import eventControllerroute from "./routes/EventControllerRoute.js";
 import participantcontrollerroute from "./routes/ParticipantRoute.js";
 
@@ -40,9 +39,6 @@ app.get("/",(req,res)=>{
     res.json("Welcome From Server");
 })
 
-app.get('/orgtest',verifyToken,(req,res)=>{
-    res.status(200).json({ message: "Token Logic Successful " })
-})
 
 //Mongodb Connection
 
