@@ -6,7 +6,6 @@ export const authOrganizerMiddleware = (req,res,next) => {
     if (!token) {
         return res.status(401).json({ message: 'Access denied. No token provided.' });
     }
-    console.log("Token from cookie:", token);
 
     try {
         const decoded = jwt.verify(token, process.env.ORGANIZER_JWT_SECRET);

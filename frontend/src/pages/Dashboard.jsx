@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link,useOutletContext } from "react-router-dom";
 import { 
   Calendar, 
   Ticket, 
@@ -45,28 +45,29 @@ export default function Dashboard() {
   const [eventsLoading, setEventsLoading] = useState(true);
   const [ticketsLoading, setTicketsLoading] = useState(true);
 
+  const { OrganizerData } = useOutletContext();
+
   useEffect(() => {
     const fetchCSVData = async () => {
       try {
         setLoading(true);
-        setEventsLoading(true);
         setTicketsLoading(true);
         
         // Fetch and parse events.csv
-        const eventsResponse = await fetch('/events.csv');
-        const eventsText = await eventsResponse.text();
+        // const eventsResponse = await fetch('/events.csv');
+        // const eventsText = await eventsResponse.text();
         
-        Papa.parse(eventsText, {
-          header: true,
-          skipEmptyLines: true,
-          complete: (results) => {
-            setEvents(results.data);
-          },
-          error: (err) => {
-            console.error('Error parsing events CSV:', err);
-            setError('Failed to load events data');
-          }
-        });
+        // Papa.parse(eventsText, {
+        //   header: true,
+        //   skipEmptyLines: true,
+        //   complete: (results) => {
+        //     setEvents(results.data);
+        //   },
+        //   error: (err) => {
+        //     console.error('Error parsing events CSV:', err);
+        //     setError('Failed to load events data');
+        //   }
+        // });
         
         // Fetch and parse tickets.csv
         const ticketsResponse = await fetch('/tickets.csv');
@@ -97,6 +98,38 @@ export default function Dashboard() {
     fetchCSVData();
   }, []);
 
+  useEffect(() => {
+    const fetchEvents = async() => {
+      if(OrganizerData == null)
+      {
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setEventsLoading(true);
+
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/event/getevents/${OrganizerData._id}`,{
+          method : "GET",
+          credentials : "include"
+        })
+
+        const data = await res.json();
+
+        setEvents(data.events);        
+
+      } catch (error) {
+        console.log("Error fetching Events:",error);
+        setError("Failed to load data of Events");
+      } finally {
+        setLoading(false);
+        setEventsLoading(false);
+      }
+    }
+
+    fetchEvents();
+  },[OrganizerData])
+
   if (loading) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
 
@@ -119,7 +152,7 @@ export default function Dashboard() {
           <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
           <p className="text-slate-500 mt-1">Welcome back! Here's your overview.</p>
         </div>
-        <Link to={("Events") + "?create=true"}>
+        <Link to={("/Events") + "?create=true"}>
           <Button className="bg-slate-900 hover:bg-slate-800">
             <Plus className="w-4 h-4 mr-2" /> Create Event
           </Button>
@@ -158,7 +191,7 @@ export default function Dashboard() {
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-slate-900">Recent Events</h2>
-          <Link to={("Events")} className="text-sm text-slate-600 hover:text-slate-900 flex items-center">
+          <Link to={("/events")} className="text-sm text-slate-600 hover:text-slate-900 flex items-center">
             View all <ArrowRight className="w-4 h-4 ml-1" />
           </Link>
         </div>
@@ -171,9 +204,9 @@ export default function Dashboard() {
           </div>
         ) : recentEvents.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* {recentEvents.map(event => (
+            {recentEvents.map(event => (
               <EventCard key={event.id} event={event} />
-            ))} */}
+            ))}
           </div>
         ) : (
           <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">

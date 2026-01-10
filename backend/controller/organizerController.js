@@ -66,14 +66,14 @@ export const loginOrganizer = async (req, res) => {
         };
 
         const token = jwt.sign(payload, process.env.ORGANIZER_JWT_SECRET , {
-            expiresIn: "1h"
+            expiresIn: "1d"
         });
 
         res.cookie("organizer_token", token, {
             httpOnly: true,        // JS cannot access it (XSS protection)
             secure: process.env.NODE_ENV === "production", // HTTPS only in prod
             sameSite: "strict",    // CSRF protection
-            maxAge: 60 * 60 * 1000 // 1 hour
+            maxAge: 24 * 60 * 60 * 1000 // 1 hour * 24
         });
 
         return res.status(200).json({

@@ -1,7 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate,useOutletContext } from "react-router-dom";
-import Cookies from "js-cookie";
 import { 
   Plus, 
   Search, 
@@ -33,8 +31,6 @@ export default function Events() {
 
   const { OrganizerData }=useOutletContext();
 
-  // const queryClient = useQueryClient();
-
   // Check URL for create param
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -48,7 +44,6 @@ export default function Events() {
     const fetchEvents = async () => {
       setIsLoading(true);
       try {
-        console.log(OrganizerData)
         const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/event/getevents/${OrganizerData?._id}`);
         const data = await response.json();
 
@@ -101,12 +96,55 @@ export default function Events() {
   //   }
   // });
 
-  const handleSubmit = (data) => {
-    // if (editingEvent) {
-    //   updateMutation.mutate({ id: editingEvent.id, data });
-    // } else {
-    //   createMutation.mutate(data);
-    // }
+  const handleSubmit = async(data) => {
+    if (!editingEvent) {
+      try {
+        setIsLoading(true);
+        const dataToSend = new FormData()
+
+        // 2. Append simple fields
+        dataToSend.append("title", data.title);
+        dataToSend.append("description", data.description);
+        dataToSend.append("category", data.category);
+        dataToSend.append("organizer",OrganizerData.Orgname)
+        dataToSend.append("organizerID", OrganizerData._id);
+        dataToSend.append("email", OrganizerData.email);
+
+        dataToSend.append("venue", JSON.stringify(data.venue));
+
+        dataToSend.append("startDate", data.startDate);
+        dataToSend.append("endDate", data.endDate);
+
+        dataToSend.append("tickets", JSON.stringify(data.tickets));
+
+        dataToSend.append("status",data.status);
+
+        // console.log(dataToSend.getAll())
+        // for (let pair of dataToSend.entries()) {
+        //     console.log(pair[0] + ': ' + pair[1]);
+        // }
+
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/event/registration`,{
+          method : "POST",
+          body : dataToSend,
+          credentials : "include"
+        })
+
+        const responseData = await res.json()
+
+        if(res.ok) 
+        {
+          toast.success("Event Created Successfully!");
+          setShowForm(false);
+          setEvents(prev => [responseData.event, ...prev]);
+        }
+      } catch (error) {
+        console.log("Error in creating the Event:",error);
+        toast.error("An error occurred while creating the event");
+      } finally {
+        setIsLoading(false);
+      }
+    } 
   };
 
   const handleEdit = (event) => {
@@ -232,15 +270,17 @@ export default function Events() {
       {/* Create/Edit Sheet */}
       <Sheet open={showForm} onOpenChange={handleCloseForm}>
         <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
-          <SheetHeader className="mb-6">
-            <SheetTitle>{editingEvent ? "Edit Event" : "Create Event"}</SheetTitle>
+          <SheetHeader className="mt-5 px-5">
+            <SheetTitle className="text-2xl">{editingEvent ? "Edit Event" : "Create Event"}</SheetTitle>
           </SheetHeader>
-          <EventForm
-            event={editingEvent}
-            onSubmit={handleSubmit}
-            onCancel={handleCloseForm}
-            isLoading={isLoading}
-          />
+          <section className="px-5 py-5">
+            <EventForm
+              event={editingEvent}
+              onSubmit={handleSubmit}
+              onCancel={handleCloseForm}
+              isLoading={isLoading}
+            />
+          </section>
         </SheetContent>
       </Sheet>
 

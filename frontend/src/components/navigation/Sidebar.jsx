@@ -14,8 +14,8 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
 const navItems = [
-  { name: "Dashboard", icon: LayoutDashboard, page: "Dashboard" },
-  { name: "Events", icon: Calendar, page: "Events" },
+  { name: "Dashboard", icon: LayoutDashboard, page: "dashboard" },
+  { name: "Events", icon: Calendar, page: "events" },
   { name: "Tickets", icon: Ticket, page: "Tickets" },
   { name: "Verify Ticket", icon: ScanLine, page: "TicketVerification" },
 ];
