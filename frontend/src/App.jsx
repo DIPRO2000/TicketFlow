@@ -10,6 +10,8 @@ import Login from './pages/Login.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import Layout from './Layout'
 import Events from './pages/Events'
+import EventDetails from './pages/EventDetails'
+import GuestTicketPurchase from './pages/GuestTicketPurchase'
 
 function App() {
   
@@ -18,10 +20,12 @@ function App() {
       <Route path="/" element={<Landing />} />
       <Route path="/register" element={<Register />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/test" element={<GuestTicketPurchase/>}/>
 
       <Route element={<Layout />}>
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/events" element={<Events/>}/>
+        <Route path="/eventdetails" element={<EventDetails/>}/>
       </Route>
     </Routes>
   )

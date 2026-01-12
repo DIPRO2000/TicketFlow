@@ -44,7 +44,10 @@ export default function Events() {
     const fetchEvents = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/event/getevents/${OrganizerData?._id}`);
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/event/getevents/${OrganizerData?._id}`,{
+          method : "GET",
+          credentials : "include"
+        });
         const data = await response.json();
 
         if (data.success) {
@@ -158,8 +161,10 @@ export default function Events() {
   };
 
   const filteredEvents = events.filter(event => {
-    const matchesSearch = event.title?.toLowerCase().includes(search.toLowerCase()) ||
-      event.venue?.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = event.title?.toLowerCase().includes(search.toLowerCase()) || 
+    event.venue.name?.toLowerCase().includes(search.toLowerCase()) || 
+    event.venue.address?.toLowerCase().includes(search.toLowerCase()) || 
+    event.venue.city?.toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter === "all" || event.status === statusFilter;
     return matchesSearch && matchesStatus;
   });

@@ -1,8 +1,6 @@
-import { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { useState,useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { createPageUrl } from "@/utils";
 import { format } from "date-fns";
 import { 
   ArrowLeft, 
@@ -38,40 +36,73 @@ export default function EventDetails() {
   const [showEditForm, setShowEditForm] = useState(false);
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState("overview");
-
-  const queryClient = useQueryClient();
+  const [events, setEvents] = useState(null);
+  const [eventLoading,seteventLoading]=useState(false);
+  const [isLoading,setIsLoading]=useState(false);
   
   const params = new URLSearchParams(window.location.search);
   const eventId = params.get("id");
 
-  const { data: event, isLoading: eventLoading } = useQuery({
-    queryKey: ["event", eventId],
-    queryFn: () => base44.entities.Event.filter({ id: eventId }),
-    enabled: !!eventId,
-    select: (data) => data[0]
-  });
+  useEffect(() => {
+    // Fetch events from backend API
+    const fetchEvents = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/event/getDetails/695f9123f6b9b12a784c6485`,{
+          method : "GET",
+          credentials : "include"
+        });
+        const data = await response.json();
+        console.log(data)
 
-  const { data: tickets = [], isLoading: ticketsLoading } = useQuery({
-    queryKey: ["tickets", eventId],
-    queryFn: () => base44.entities.Ticket.filter({ event_id: eventId }, "-created_date", 500),
-    enabled: !!eventId
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: (data) => base44.entities.Event.update(eventId, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["event", eventId] });
-      setShowEditForm(false);
-      toast.success("Event updated successfully!");
+        if (data.success) {
+          setEvents(data.event);
+        } else {
+          console.error("Failed to fetch events:", data.message);
+        }
+      } 
+      catch (error) {
+        console.error("Error fetching events:", error);
+      } finally {
+        setIsLoading(false);
+      }
     }
+
+    fetchEvents();
+  }, [eventId]);
+
+  useEffect(()=>{
+    console.log(events);
+  },[events]);
+
+  // const { data: event, isLoading: eventLoading } = useQuery({
+  //   queryKey: ["event", eventId],
+  //   queryFn: () => base44.entities.Event.filter({ id: eventId }),
+  //   enabled: !!eventId,
+  //   select: (data) => data[0]
+  // });
+
+  // const { data: tickets = [], isLoading: ticketsLoading } = useQuery({
+  //   queryKey: ["tickets", eventId],
+  //   queryFn: () => base44.entities.Ticket.filter({ event_id: eventId }, "-created_date", 500),
+  //   enabled: !!eventId
+  // });
+
+  const updateMutation = ({
+    // mutationFn: (data) => base44.entities.Event.update(eventId, data),
+    // onSuccess: () => {
+    //   queryClient.invalidateQueries({ queryKey: ["event", eventId] });
+    //   setShowEditForm(false);
+    //   toast.success("Event updated successfully!");
+    // }
   });
 
-  const createTicketMutation = useMutation({
-    mutationFn: (data) => base44.entities.Ticket.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tickets", eventId] });
-      toast.success("Ticket generated successfully!");
-    }
+  const createTicketMutation = ({
+    // mutationFn: (data) => base44.entities.Ticket.create(data),
+    // onSuccess: () => {
+    //   queryClient.invalidateQueries({ queryKey: ["tickets", eventId] });
+    //   toast.success("Ticket generated successfully!");
+    // }
   });
 
   const generateTickets = async (ticketType, count = 1) => {
@@ -86,17 +117,18 @@ export default function EventDetails() {
     }
   };
 
-  const filteredTickets = tickets.filter(ticket => 
-    ticket.code?.toLowerCase().includes(search.toLowerCase()) ||
-    ticket.purchaser_name?.toLowerCase().includes(search.toLowerCase()) ||
-    ticket.purchaser_email?.toLowerCase().includes(search.toLowerCase())
-  );
+  // const filteredTickets = tickets.filter(ticket => 
+  //   ticket.code?.toLowerCase().includes(search.toLowerCase()) ||
+  //   ticket.purchaser_name?.toLowerCase().includes(search.toLowerCase()) ||
+  //   ticket.purchaser_email?.toLowerCase().includes(search.toLowerCase())
+  // );
+  const filteredTickets =[]
 
-  const totalTickets = event?.ticket_types?.reduce((sum, t) => sum + (t.quantity || 0), 0) || 0;
-  const soldTickets = tickets.length;
-  const checkedIn = tickets.filter(t => t.status === "used").length;
+  // const totalTickets = event?.ticket_types?.reduce((sum, t) => sum + (t.quantity || 0), 0) || 0;
+  // const soldTickets = tickets.length;
+  // const checkedIn = tickets.filter(t => t.status === "used").length;
 
-  if (eventLoading) {
+  if (isLoading) {
     return (
       <div className="space-y-6 animate-pulse">
         <div className="h-8 w-48 bg-slate-200 rounded" />
@@ -105,11 +137,11 @@ export default function EventDetails() {
     );
   }
 
-  if (!event) {
+  if (events == null) {
     return (
       <div className="text-center py-20">
         <h2 className="text-xl font-semibold text-slate-900 mb-2">Event not found</h2>
-        <Link to={createPageUrl("Events")}>
+        <Link to={("Events")}>
           <Button variant="outline">Back to Events</Button>
         </Link>
       </div>
@@ -120,15 +152,15 @@ export default function EventDetails() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Link to={createPageUrl("Events")}>
+        <Link to={("Events")}>
           <Button variant="ghost" size="icon" className="h-9 w-9">
             <ArrowLeft className="w-4 h-4" />
           </Button>
         </Link>
         <div className="flex-1">
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-slate-900">{event.name}</h1>
-            <StatusBadge status={event.status} />
+            <h1 className="text-2xl font-bold text-slate-900">{events.title}</h1>
+            <StatusBadge status={events.status} />
           </div>
         </div>
         <Button variant="outline" onClick={() => setShowEditForm(true)}>
@@ -139,10 +171,10 @@ export default function EventDetails() {
       {/* Event Info Card */}
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
         <div className="h-48 bg-gradient-to-br from-slate-100 to-slate-200 relative">
-          {event.cover_image && (
+          {events.cover_image && (
             <img 
-              src={event.cover_image} 
-              alt={event.name}
+              src={events.cover_image} 
+              alt={events.name}
               className="w-full h-full object-cover"
             />
           )}
@@ -156,10 +188,10 @@ export default function EventDetails() {
               <div>
                 <p className="text-sm text-slate-500">Date & Time</p>
                 <p className="font-medium text-slate-900">
-                  {format(new Date(event.date), "EEEE, MMMM d, yyyy")}
+                  {format(new Date(events.startDate), "EEEE, MMMM d, yyyy")}
                 </p>
                 <p className="text-sm text-slate-600">
-                  {format(new Date(event.date), "h:mm a")}
+                  {format(new Date(events.startDate), "h:mm a")}
                 </p>
               </div>
             </div>
@@ -169,7 +201,7 @@ export default function EventDetails() {
               </div>
               <div>
                 <p className="text-sm text-slate-500">Venue</p>
-                <p className="font-medium text-slate-900">{event.venue}</p>
+                <p className="font-medium text-slate-900">{events.venue.name}{" "}{events.venue.address}{","}{events.venue.city}</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
@@ -178,18 +210,18 @@ export default function EventDetails() {
               </div>
               <div>
                 <p className="text-sm text-slate-500">Attendance</p>
-                <p className="font-medium text-slate-900">
+                {/* <p className="font-medium text-slate-900">
                   {checkedIn} / {soldTickets} checked in
                 </p>
                 <p className="text-sm text-slate-600">
                   {((checkedIn / soldTickets) * 100 || 0).toFixed(1)}% attendance rate
-                </p>
+                </p> */}
               </div>
             </div>
           </div>
-          {event.description && (
+          {events.description && (
             <div className="mt-6 pt-6 border-t border-slate-100">
-              <p className="text-slate-600">{event.description}</p>
+              <p className="text-slate-600">{events.description}</p>
             </div>
           )}
         </div>
@@ -197,17 +229,17 @@ export default function EventDetails() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="bg-slate-100">
+        {/* <TabsList className="bg-slate-100">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="tickets">Tickets ({tickets.length})</TabsTrigger>
-        </TabsList>
+        </TabsList> */}
 
-        <TabsContent value="overview" className="mt-6">
-          {/* Ticket Types */}
+        {/* <TabsContent value="overview" className="mt-6">
+          
           <div className="bg-white rounded-2xl border border-slate-200 p-6">
             <h3 className="text-lg font-semibold text-slate-900 mb-4">Ticket Types</h3>
             <div className="space-y-4">
-              {event.ticket_types?.map((type, index) => {
+              {events.ticket_types?.map((type, index) => {
                 const typeTickets = tickets.filter(t => t.ticket_type === type.name);
                 const sold = typeTickets.length;
                 const available = type.quantity - sold;
@@ -246,9 +278,9 @@ export default function EventDetails() {
               })}
             </div>
           </div>
-        </TabsContent>
+        </TabsContent> */}
 
-        <TabsContent value="tickets" className="mt-6">
+        {/* <TabsContent value="tickets" className="mt-6">
           <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
             <div className="p-4 border-b border-slate-100">
               <div className="flex flex-col sm:flex-row gap-4">
@@ -305,7 +337,7 @@ export default function EventDetails() {
               </div>
             )}
           </div>
-        </TabsContent>
+        </TabsContent> */}
       </Tabs>
 
       {/* Edit Sheet */}
@@ -315,10 +347,10 @@ export default function EventDetails() {
             <SheetTitle>Edit Event</SheetTitle>
           </SheetHeader>
           <EventForm
-            event={event}
+            event={events}
             onSubmit={(data) => updateMutation.mutate(data)}
             onCancel={() => setShowEditForm(false)}
-            isLoading={updateMutation.isPending}
+            isLoading={isLoading}
           />
         </SheetContent>
       </Sheet>
