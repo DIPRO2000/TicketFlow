@@ -1,13 +1,14 @@
 import Participant from "../models/participant.js";
 import Event from "../models/event.js";
 import { uploadBufferToCloudinary } from "../utils/cloudinaryUpload.js";
+import { sendToken } from "../utils/sendToken.js";
 
-// when user submits form
+// when user buys tickets
 export const registerParticipant = async (req, res) => {
   try {
-    const { eventId, name, email, phone, ticketType, pricePaid } = req.body;
+    const { eventLinkId, name, email, phone, ticketType, pricePaid } = req.body;
 
-    const event = await Event.findById(eventId);
+    const event = await Event.findOne({eventLinkId:eventLinkId});
     if (!event)
       return res.status(404).json({ success: false, message: "Event not found" });
 
@@ -22,6 +23,13 @@ export const registerParticipant = async (req, res) => {
       return res
         .status(400)
         .json({ success: false, message: "No tickets available for this type" });
+    
+    if (ticket.price != pricePaid)
+    {
+      return res
+        .status(400)
+        .json({ success: false, message: "Ticket Price is not matched with payed price" });
+    }
 
     // ✅ upload screenshot if present
     let paymentProofUrl = null;
@@ -34,7 +42,7 @@ export const registerParticipant = async (req, res) => {
 
     // ✅ create participant
     const participant = new Participant({
-      eventId,
+      eventId: event._id,
       name,
       email,
       phone,
@@ -50,6 +58,13 @@ export const registerParticipant = async (req, res) => {
     event.totalIncome += pricePaid;
     event.updatedAt = new Date();
     await event.save();
+
+    try {
+      const token = participant.token;
+      await sendToken(email,token,event.title);
+    } catch (error) {
+      console.log("Failed to send email to the participant:",error);
+    }
 
     res.json({
       success: true,

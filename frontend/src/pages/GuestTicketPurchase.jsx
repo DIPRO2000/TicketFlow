@@ -238,16 +238,16 @@ useEffect(()=>{
                     </div>
                     <div>
                       <p className="text-sm font-medium text-purple-600 uppercase tracking-wide mb-1">Venue</p>
-                      <span className="font-semibold text-slate-900 text-lg">{events.venue.name}</span>
+                      <span className="font-semibold text-slate-900 text-lg">{events.venue.name}{" "}{events.venue.address}{","}{events.venue.city}</span>
                     </div>
                   </div>
                 </div>
 
-                {event.description && (
+                {events.description && (
                   <div className="pt-8 border-t border-slate-200">
                     <h3 className="text-xl font-bold text-slate-900 mb-3">About This Event</h3>
                     <p className="text-slate-600 leading-relaxed text-lg">
-                      {event.description}
+                      {events.description}
                     </p>
                   </div>
                 )}
