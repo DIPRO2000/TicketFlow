@@ -12,7 +12,8 @@ import {
   Copy,
   Plus,
   Download,
-  Search
+  Search,
+  Import
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,7 +49,7 @@ export default function EventDetails() {
     const fetchEvents = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/event/getDetails/695f9123f6b9b12a784c6485`,{
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/event/getDetails/${eventId}`,{
           method : "GET",
           credentials : "include"
         });
@@ -216,6 +217,20 @@ export default function EventDetails() {
                 <p className="text-sm text-slate-600">
                   {((checkedIn / soldTickets) * 100 || 0).toFixed(1)}% attendance rate
                 </p> */}
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-slate-100 rounded-lg">
+                <Users className="w-5 h-5 text-slate-600" />
+              </div>
+              <div>
+                <p className="text-sm text-slate-500">Public Link</p>
+                {/* <p className="font-medium text-slate-900">
+                  {checkedIn} / {soldTickets} checked in
+                </p> */}
+                <p className="text-sm text-slate-600">
+                  {`${import.meta.env.VITE_FRONTEND_URL}/${events.eventLinkId}`}
+                </p>
               </div>
             </div>
           </div>

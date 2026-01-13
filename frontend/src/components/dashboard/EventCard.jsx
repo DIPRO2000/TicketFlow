@@ -47,7 +47,7 @@ export default function EventCard({ event, onEdit, onDelete }) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem asChild>
-                <Link to={("EventDetails") + `?id=${event.id}`}>
+                <Link to={("/eventdetails") + `?id=${event._id}`}>
                   <Eye className="w-4 h-4 mr-2" /> View Details
                 </Link>
               </DropdownMenuItem>

@@ -73,6 +73,7 @@ export const registerParticipant = async (req, res) => {
       participant,
     });
   } catch (err) {
+    console.log("Error:",err);
     res.status(500).json({ success: false, error: err.message });
   }
 };

@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Calendar, MapPin, Ticket, CheckCircle2, Loader2, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { useParams } from "react-router-dom";
 
 const generateTicketCode = () => {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -19,22 +20,22 @@ const generateTicketCode = () => {
 
 export default function GuestTicketPurchase() {
   const urlParams = new URLSearchParams(window.location.search);
-  const eventId = urlParams.get("id");
-
   const [selectedTicketType, setSelectedTicketType] = useState(null);
   const [quantity, setQuantity] = useState(1);
-  const [purchaserInfo, setPurchaserInfo] = useState({ name: "", email: "" });
+  const [purchaserInfo, setPurchaserInfo] = useState({ name: "", email: "", phone: "" });
   const [purchaseComplete, setPurchaseComplete] = useState(false);
   const [purchasedTickets, setPurchasedTickets] = useState([]);
   const [events, setEvents] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  const { eventLinkId } = useParams()
 
   useEffect(() => {
     // Fetch events from backend API
     const fetchEvents = async () => {
     setIsLoading(true);
     try {
-        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/event/getDetails/695f9123f6b9b12a784c6485`,{
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/event/${eventLinkId}`,{
         method : "GET",
         credentials : "include"
         });
@@ -105,17 +106,38 @@ useEffect(()=>{
     // }
   });
 
-  const handlePurchase = (e) => {
-    // e.preventDefault();
-    // if (!selectedTicketType || !purchaserInfo.name || !purchaserInfo.email) {
-    //   toast.error("Please fill in all fields");
-    //   return;
-    // }
-    // purchaseMutation.mutate({
-    //   ticketType: selectedTicketType,
-    //   qty: quantity,
-    //   info: purchaserInfo
-    // });
+  const handlePurchase = async(e) => {
+    e.preventDefault();
+    if (!selectedTicketType || !purchaserInfo.name || !purchaserInfo.email || !purchaserInfo.phone) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
+    try {
+      console.log(selectedTicketType);
+      const form = new FormData();
+      form.append("eventLinkId",eventLinkId);
+      form.append("name",purchaserInfo.name);
+      form.append("email",purchaserInfo.email);
+      form.append("phone",purchaserInfo.phone);
+      form.append("ticketType",selectedTicketType.type);
+      form.append("pricePaid",(selectedTicketType.price * quantity));
+      
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/participant/register-participant`,{
+        method : "POST",
+        body : form
+      });
+
+      if(response.ok)
+      {
+        console.log("Successful",response);
+      } else {
+        console.log("Failure",response.message);
+      }
+
+    } catch (error) {
+      console.log("Error in buying tickets:",error);
+    }
   };
 
   if (isLoading) {
@@ -297,7 +319,7 @@ useEffect(()=>{
                               </div>
                             </div>
                             <div className="text-2xl font-bold text-indigo-600">
-                              ${type.price}
+                              {(type.price != 0) ? `₹${type.price}` : "Free"}
                             </div>
                           </div>
                         </button>
@@ -348,6 +370,19 @@ useEffect(()=>{
                           required
                         />
                       </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="phone" className="text-base font-semibold text-slate-900">Phone No.</Label>
+                        <Input
+                          id="phone"
+                          type="phone"
+                          value={purchaserInfo.phone}
+                          onChange={(e) => setPurchaserInfo(prev => ({ ...prev, phone: e.target.value }))}
+                          placeholder="9876543210"
+                          className="h-12 text-base border-2"
+                          required
+                        />
+                      </div>
                     </div>
 
                     {/* Total & Submit */}
@@ -355,7 +390,7 @@ useEffect(()=>{
                       <div className="flex items-center justify-between px-2">
                         <span className="text-lg font-semibold text-slate-600">Total Amount</span>
                         <span className="text-3xl font-bold text-slate-900">
-                          ${(selectedTicketType.price * quantity).toFixed(2)}
+                          ₹{(selectedTicketType.price * quantity).toFixed(2)}
                         </span>
                       </div>
 
