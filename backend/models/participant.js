@@ -21,6 +21,7 @@ const participantSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  
   phone: String,
 
   // Which ticket they bought
@@ -45,10 +46,23 @@ const participantSchema = new mongoose.Schema({
     type: String,
   },
 
-  // Was the ticket already used at the event gate?
-  used: {
+  // Total tickets bought in this transaction
+  quantity: {
+    type: Number,
+    required: true,
+    default: 1, //
+  },
+
+  // Track how many people have already entered using this token
+  checkedInCount: {
+    type: Number,
+    default: 0, //
+  },
+
+  // to check if the group is fully checked in
+  isFullyUsed: {
     type: Boolean,
-    default: false,
+    default: false, //
   },
 
   purchasedAt: {

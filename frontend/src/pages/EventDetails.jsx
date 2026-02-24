@@ -44,6 +44,19 @@ export default function EventDetails() {
   const params = new URLSearchParams(window.location.search);
   const eventId = params.get("id");
 
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(publicLink);
+      setCopied(true);
+      // Reset the "Copied" icon back to "Copy" after 2 seconds
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy link: ", err);
+    }
+  };
+
   useEffect(() => {
     // Fetch events from backend API
     const fetchEvents = async () => {
@@ -231,6 +244,17 @@ export default function EventDetails() {
                 <p className="text-sm text-slate-600">
                   {`${import.meta.env.VITE_FRONTEND_URL}/${events.eventLinkId}`}
                 </p>
+                <button
+                  onClick={handleCopy}
+                  className="p-1.5 hover:bg-slate-100 rounded-md transition-colors border border-slate-200"
+                  title="Copy to clipboard"
+                >
+                  {copied ? (
+                    <Check className="w-4 h-4 text-green-600" />
+                  ) : (
+                    <Copy className="w-4 h-4 text-slate-500" />
+                  )}
+                </button>
               </div>
             </div>
           </div>
