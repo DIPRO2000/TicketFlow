@@ -74,26 +74,111 @@ export const registerParticipant = async (req, res) => {
   }
 };
 
+//Ticket Verify
+export const TicketVerify = async(req,res) => {
+  try {
+    const { eventId,  token } = req.body;
+
+    const participants = await Participant.findOne({ eventId:eventId , token:token });
+    if (!participants)
+    {
+      return res.status(404).json({ message: "No Ticket found"});
+    }
+
+    res.status(200).json({ status:"Success", message: "Verified" , participants});
+  } 
+  catch (error) {
+    return res.status(500).json({ success: false, message: error.message});
+  }
+}
+
 
 //Participant Check-in
 export const ParticipantscheckIn = async (req, res) => {
   try {
-    const { token } = req.body; // scan or enter code
+    const { participantId, eventId, count } = req.body;
 
-    const participant = await Participant.findOne({ token });
-    if (!participant)
-      return res.status(404).json({ success: false, message: "Invalid token" });
+    // Validate input
+    if (!participantId || !eventId || !count) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Missing required fields: participantId, eventId, and count are required" 
+      });
+    }
 
-    if (participant.used)
-      return res
-        .status(400)
-        .json({ success: false, message: "Ticket already used" });
+    if (count <= 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Count must be greater than 0" 
+      });
+    }
 
-    participant.used = true;
+    const participant = await Participant.findById(participantId);
+    
+    if (!participant) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Participant not found" 
+      });
+    }
+
+    // Verify the participant belongs to the correct event
+    if (participant.eventId.toString() !== eventId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Participant does not belong to this event" 
+      });
+    }
+
+    if (participant.isFullyUsed) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Ticket already fully used", 
+        participant 
+      });
+    }
+
+    const remainingEntries = participant.quantity - participant.checkedInCount;
+    
+    if (count > remainingEntries) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Cannot check in ${count} users. Only ${remainingEntries} entries remaining`,
+        participant 
+      });
+    }
+
+    // Update checked in count
+    participant.checkedInCount = participant.checkedInCount + count;
+    
+    // Check if fully used
+    if (participant.checkedInCount >= participant.quantity) {
+      participant.isFullyUsed = true;
+      participant.checkedInCount = participant.quantity; // Ensure it doesn't exceed
+    }
+    
     await participant.save();
 
-    res.json({ success: true, message: "Check-in successful", participant });
+    return res.json({ 
+      success: true, 
+      message: `Check-in successful for ${count} user(s)`, 
+      participant: {
+        _id: participant._id,
+        name: participant.name,
+        token: participant.token,
+        checkedInCount: participant.checkedInCount,
+        quantity: participant.quantity,
+        isFullyUsed: participant.isFullyUsed,
+        remainingEntries: participant.quantity - participant.checkedInCount
+      }
+    });
+
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    console.error("Check-in error:", err);
+    return res.status(500).json({ 
+      success: false, 
+      message: "Server error during check-in",
+      error: err.message 
+    });
   }
 };

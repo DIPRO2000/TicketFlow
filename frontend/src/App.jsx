@@ -12,6 +12,7 @@ import Layout from './Layout'
 import Events from './pages/Events'
 import EventDetails from './pages/EventDetails'
 import GuestTicketPurchase from './pages/GuestTicketPurchase'
+import TicketVerification from './pages/TicketVerification'
 
 function App() {
   
@@ -26,6 +27,7 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/events" element={<Events/>}/>
         <Route path="/eventdetails" element={<EventDetails/>}/>
+        <Route path="/TicketVerification" element={<TicketVerification/>}/>
       </Route>
     </Routes>
   )
