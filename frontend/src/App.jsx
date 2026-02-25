@@ -13,6 +13,7 @@ import Events from './pages/Events'
 import EventDetails from './pages/EventDetails'
 import GuestTicketPurchase from './pages/GuestTicketPurchase'
 import TicketVerification from './pages/TicketVerification'
+import Tickets from "./pages/Tickets"
 
 function App() {
   
@@ -21,11 +22,12 @@ function App() {
       <Route path="/" element={<Landing />} />
       <Route path="/register" element={<Register />} />
       <Route path="/login" element={<Login />} />
-      <Route path="/:eventLinkId" element={<GuestTicketPurchase/>}/>
+      <Route path="/link/:eventLinkId" element={<GuestTicketPurchase/>}/>
 
       <Route element={<Layout />}>
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/events" element={<Events/>}/>
+        <Route path="/tickets" element={<Tickets/>}/>
         <Route path="/eventdetails" element={<EventDetails/>}/>
         <Route path="/TicketVerification" element={<TicketVerification/>}/>
       </Route>

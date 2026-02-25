@@ -14,6 +14,7 @@ export default function GuestTicketPurchase() {
   const [purchasedTickets, setPurchasedTickets] = useState([]);
   const [events, setEvents] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isPurchasing, setIsPurchasing] = useState(false); // New state for purchase loading
 
   const { eventLinkId } = useParams();
 
@@ -31,9 +32,11 @@ export default function GuestTicketPurchase() {
           setEvents(data.event);
         } else {
           console.error("Failed to fetch events:", data.message);
+          toast.error(data.message || "Failed to load event details");
         }
       } catch (error) {
         console.error("Error fetching events:", error);
+        toast.error("Error loading event. Please try again.");
       } finally {
         setIsLoading(false);
       }
@@ -103,6 +106,7 @@ export default function GuestTicketPurchase() {
 
   const handlePurchase = async (e) => {
     e.preventDefault();
+    
     if (selectedTickets.length === 0) {
       toast.error("Please select a ticket type");
       return;
@@ -112,6 +116,22 @@ export default function GuestTicketPurchase() {
       toast.error("Please fill in all purchaser information fields");
       return;
     }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(purchaserInfo.email)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+
+    // Phone validation (basic)
+    const phoneRegex = /^\d{10}$/;
+    if (!phoneRegex.test(purchaserInfo.phone.replace(/\D/g, ''))) {
+      toast.error("Please enter a valid 10-digit phone number");
+      return;
+    }
+
+    setIsPurchasing(true); // Start purchase loading
 
     try {
       const ticket = selectedTickets[0];
@@ -138,32 +158,90 @@ export default function GuestTicketPurchase() {
         setPurchaseComplete(true);
         setSelectedTickets([]);
         setPurchaserInfo({ name: "", email: "", phone: "" });
+        
+        // Optional: Show purchased tickets info
+        if (result.participants) {
+          setPurchasedTickets([result.participants]);
+        }
       } else {
         toast.error(result.message || "Failed to purchase tickets");
       }
     } catch (error) {
       console.error("Error in buying tickets:", error);
       toast.error("An error occurred while purchasing tickets");
+    } finally {
+      setIsPurchasing(false); // Stop purchase loading regardless of outcome
     }
   };
 
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-10 h-10 animate-spin text-indigo-600" />
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 animate-spin text-indigo-600 mx-auto mb-4" />
+          <p className="text-slate-600">Loading event details...</p>
+        </div>
       </div>
     );
   }
 
   if (!events) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-slate-500">
-        Event not found or failed to load.
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <X className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <p className="text-slate-600 mb-4">Event not found or failed to load.</p>
+          <Button onClick={() => window.location.reload()} variant="outline">
+            Try Again
+          </Button>
+        </div>
       </div>
     );
   }
 
   const availableTickets = events?.tickets?.filter(t => (t.quantity - (t.sold || 0)) > 0) || [];
+
+  // If purchase is complete, show success message
+  if (purchaseComplete) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 py-8 md:py-12 px-4">
+        <div className="max-w-md mx-auto">
+          <div className="bg-white rounded-3xl shadow-2xl p-8 text-center">
+            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-bold text-slate-900 mb-4">Purchase Successful!</h2>
+            <p className="text-slate-600 mb-6">
+              Thank you for your purchase. Your tickets have been booked successfully.
+            </p>
+            {purchasedTickets.length > 0 && (
+              <div className="bg-indigo-50 rounded-xl p-4 mb-6 text-left">
+                <p className="text-sm font-medium text-indigo-600 mb-2">Ticket Details:</p>
+                {purchasedTickets.map((ticket, idx) => (
+                  <div key={idx} className="text-sm text-slate-700">
+                    <p>Token: <span className="font-mono font-bold">{ticket.token}</span></p>
+                    <p>Type: {ticket.ticketType}</p>
+                    <p>Quantity: {ticket.quantity}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            <Button 
+              onClick={() => {
+                setPurchaseComplete(false);
+                setPurchasedTickets([]);
+              }}
+              className="w-full bg-indigo-600 hover:bg-indigo-700"
+            >
+              Purchase More Tickets
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 py-8 md:py-12 px-4">
@@ -226,10 +304,11 @@ export default function GuestTicketPurchase() {
                         <button
                           key={ticket._id}
                           type="button"
-                          onClick={() => addTicketToCart(ticket)}
+                          onClick={() => !isPurchasing && addTicketToCart(ticket)}
+                          disabled={isPurchasing}
                           className={`w-full p-5 rounded-2xl border-2 text-left transition-all ${
                             inCart ? "border-indigo-500 bg-indigo-50 shadow-md" : "border-slate-200 bg-white"
-                          }`}
+                          } ${isPurchasing ? 'opacity-50 cursor-not-allowed' : 'hover:border-indigo-300'}`}
                         >
                           <div className="flex justify-between items-center">
                             <div>
@@ -248,31 +327,40 @@ export default function GuestTicketPurchase() {
                   <div className="space-y-4 border-2 border-indigo-100 rounded-2xl p-4 bg-indigo-50/50">
                     <div className="space-y-3">
                       {selectedTickets.map((ticket) => {
-                        // FIX: Calculate availableQty inside the .map() scope
                         const availableQty = ticket.quantity - (ticket.sold || 0);
 
                         return (
                           <div key={ticket._id} className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-200">
                             <div>
-                              <div className="font-medium">{ticket.name}</div>
+                              <div className="font-medium">{ticket.type}</div>
                               <div className="text-sm text-slate-500">₹{ticket.price} each</div>
                             </div>
                             <div className="flex items-center gap-3">
                               <div className="flex items-center gap-2">
-                                <button type="button" onClick={() => updateTicketQuantity(ticket._id, ticket.cartQuantity - 1)} className="p-1 hover:bg-slate-100 rounded">
+                                <button 
+                                  type="button" 
+                                  onClick={() => updateTicketQuantity(ticket._id, ticket.cartQuantity - 1)} 
+                                  disabled={isPurchasing}
+                                  className="p-1 hover:bg-slate-100 rounded disabled:opacity-50"
+                                >
                                   <Minus className="w-4 h-4" />
                                 </button>
                                 <span className="font-bold min-w-[20px] text-center">{ticket.cartQuantity}</span>
                                 <button 
                                   type="button" 
                                   onClick={() => updateTicketQuantity(ticket._id, ticket.cartQuantity + 1)} 
-                                  className="p-1 hover:bg-slate-100 rounded"
-                                  disabled={ticket.cartQuantity >= availableQty}
+                                  className="p-1 hover:bg-slate-100 rounded disabled:opacity-50"
+                                  disabled={isPurchasing || ticket.cartQuantity >= availableQty}
                                 >
                                   <Plus className="w-4 h-4" />
                                 </button>
                               </div>
-                              <button type="button" onClick={() => removeTicketFromCart(ticket._id)} className="p-1 text-slate-400 hover:text-red-500">
+                              <button 
+                                type="button" 
+                                onClick={() => removeTicketFromCart(ticket._id)} 
+                                disabled={isPurchasing}
+                                className="p-1 text-slate-400 hover:text-red-500 disabled:opacity-50"
+                              >
                                 <X className="w-4 h-4" />
                               </button>
                             </div>
@@ -289,16 +377,54 @@ export default function GuestTicketPurchase() {
 
                 <div className="space-y-4">
                   <Label>Full Name</Label>
-                  <Input required value={purchaserInfo.name} onChange={(e) => setPurchaserInfo({...purchaserInfo, name: e.target.value})} />
+                  <Input 
+                    required 
+                    value={purchaserInfo.name} 
+                    onChange={(e) => setPurchaserInfo({...purchaserInfo, name: e.target.value})}
+                    disabled={isPurchasing}
+                    className={isPurchasing ? 'bg-slate-50' : ''}
+                  />
+                  
                   <Label>Email Address</Label>
-                  <Input type="email" required value={purchaserInfo.email} onChange={(e) => setPurchaserInfo({...purchaserInfo, email: e.target.value})} />
+                  <Input 
+                    type="email" 
+                    required 
+                    value={purchaserInfo.email} 
+                    onChange={(e) => setPurchaserInfo({...purchaserInfo, email: e.target.value})}
+                    disabled={isPurchasing}
+                    className={isPurchasing ? 'bg-slate-50' : ''}
+                  />
+                  
                   <Label>Phone Number</Label>
-                  <Input required value={purchaserInfo.phone} onChange={(e) => setPurchaserInfo({...purchaserInfo, phone: e.target.value})} />
+                  <Input 
+                    required 
+                    value={purchaserInfo.phone} 
+                    onChange={(e) => setPurchaserInfo({...purchaserInfo, phone: e.target.value})}
+                    disabled={isPurchasing}
+                    className={isPurchasing ? 'bg-slate-50' : ''}
+                  />
                 </div>
 
-                <Button type="submit" className="w-full h-14 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all">
-                  Purchase {totalTicketsCount()} Tickets
+                <Button 
+                  type="submit" 
+                  disabled={isPurchasing || selectedTickets.length === 0}
+                  className="w-full h-14 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-70"
+                >
+                  {isPurchasing ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Processing...
+                    </span>
+                  ) : (
+                    `Purchase ${totalTicketsCount()} Ticket${totalTicketsCount() !== 1 ? 's' : ''}`
+                  )}
                 </Button>
+
+                {isPurchasing && (
+                  <p className="text-sm text-center text-slate-500 animate-pulse">
+                    Please wait while we process your purchase...
+                  </p>
+                )}
               </form>
             </div>
           </div>

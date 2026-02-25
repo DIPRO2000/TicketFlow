@@ -1,4 +1,5 @@
 import Event from "../models/event.js";  // ✅ use capitalized model
+import participant from "../models/participant.js";
 
 import { uploadBufferToCloudinary } from "../utils/cloudinaryUpload.js";
 
@@ -158,3 +159,26 @@ export const deleteEvent = async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
+// ✅ Get all Tickets for all Events of an Organizer
+export const allTicket = async (req,res) => {
+
+  const { organizerID } = req.body
+  try {
+    if (!organizerID)
+    {
+      res.status(400).json({success: false, message: "OrganizerId not provided"});
+    }
+
+    const tickets = await participant.find({ organizerID: organizerID});
+    if (tickets == null || tickets.length == 0)
+    {
+      res.status(404).json({ success:false, message: "No Ticket found yet or bought"});
+    }
+
+    res.status(200).json({success:true, message: "All Tickets found Successfully", tickets});
+  } 
+  catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+}

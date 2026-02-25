@@ -12,6 +12,12 @@ const participantSchema = new mongoose.Schema({
     required: true,
   },
 
+  organizerID: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Event",
+    required: true
+  },
+
   // Info about the person filling the form
   name: {
     type: String,

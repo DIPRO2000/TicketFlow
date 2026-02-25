@@ -39,6 +39,7 @@ export const registerParticipant = async (req, res) => {
 
     const participant = new Participant({
       eventId: event._id,
+      organizerID: event.organizerID,
       name,
       email,
       phone,
