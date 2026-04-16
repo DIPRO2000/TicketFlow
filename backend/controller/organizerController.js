@@ -101,3 +101,36 @@ export const getOrganizerProfile = async (req,res) => {
         return res.status(500).json({ message: "Server error" });
     }
 }
+
+
+// Organizer OrgName Changing
+export const OrgNameChanging = async (req, res) => {
+    try {
+        const { newOrgName } = req.body;
+
+        if (!newOrgName || newOrgName.trim() === "") {
+            return res.status(400).json({ message: "New organization name is required" });
+        }
+
+        // Change "OrgName" to "Orgname" to match your frontend useEffect 
+        // and your existing Schema logic.
+        const updatedOrganizer = await Organizer.findByIdAndUpdate(
+            req.user.id, 
+            { Orgname: newOrgName }, 
+            { new: true, runValidators: true }
+        );
+
+        if (!updatedOrganizer) {
+            return res.status(404).json({ message: "Organizer not found" });
+        }
+
+        return res.status(200).json({ 
+            message: "Organization name updated successfully", 
+            data: updatedOrganizer 
+        });
+
+    } catch (error) {
+        console.error("Error updating OrgName:", error);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
+}

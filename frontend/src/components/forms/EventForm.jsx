@@ -28,7 +28,8 @@ export default function EventForm({ event, onSubmit, onCancel, isLoading, organi
       pincode: "",
     },
     status: "Draft",
-    coverImage: "",
+    coverImage: null, 
+    gallery: [],   
     tickets: [{ id: generateId(), type: "General Admission", price: 0, quantity: 100, sold: 0 }]
   });
 
@@ -293,15 +294,31 @@ export default function EventForm({ event, onSubmit, onCancel, isLoading, organi
       </div>
 
       {/* Image URL */}
-      <div className="space-y-2">
-        <Label htmlFor="coverImage">Cover Image URL</Label>
-        <Input
-          id="coverImage"
-          value={formData.coverImage}
-          onChange={(e) => handleChange("coverImage", e.target.value)}
-          placeholder="https://cloudinary.com/your-image.jpg"
-          className="h-11"
-        />
+      <div className="space-y-4">
+        {/* Cover Image Input (Single File) */}
+        <div className="space-y-2">
+          <Label htmlFor="coverImage">Cover Image</Label>
+          <Input
+            id="coverImage"
+            type="file"
+            accept="image/*"
+            onChange={(e) => handleChange("coverImage", e.target.files[0])}
+            className="h-11"
+          />
+        </div>
+
+        {/* Gallery Input (Multiple Files) */}
+        <div className="space-y-2">
+          <Label htmlFor="gallery">Gallery Images</Label>
+          <Input
+            id="gallery"
+            type="file"
+            multiple
+            accept="image/*"
+            onChange={(e) => handleChange("gallery", e.target.files)}
+            className="h-11"
+          />
+        </div>
       </div>
 
       {/* Actions */}

@@ -14,6 +14,7 @@ import EventDetails from './pages/EventDetails'
 import GuestTicketPurchase from './pages/GuestTicketPurchase'
 import TicketVerification from './pages/TicketVerification'
 import Tickets from "./pages/Tickets"
+import Settings from './pages/Settings'
 
 function App() {
   
@@ -30,6 +31,7 @@ function App() {
         <Route path="/tickets" element={<Tickets/>}/>
         <Route path="/eventdetails" element={<EventDetails/>}/>
         <Route path="/TicketVerification" element={<TicketVerification/>}/>
+        <Route path="/settings" element={<Settings/>}/>
       </Route>
     </Routes>
   )

@@ -18,10 +18,10 @@ export default function EventCard({ event, onEdit, onDelete }) {
   return (
     <div className="group bg-white rounded-2xl border border-slate-200/60 overflow-hidden transition-all duration-200 hover:shadow-lg hover:shadow-slate-200/50">
       <div className="relative h-40 bg-gradient-to-br from-slate-100 to-slate-200">
-        {event.cover_image ? (
+        {event.coverImage ? (
           <img 
-            src={event.cover_image} 
-            alt={event.name}
+            src={event.coverImage} 
+            alt={event.title}
             className="w-full h-full object-cover"
           />
         ) : (

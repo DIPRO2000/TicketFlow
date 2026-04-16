@@ -185,10 +185,10 @@ export default function EventDetails() {
       {/* Event Info Card */}
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
         <div className="h-48 bg-gradient-to-br from-slate-100 to-slate-200 relative">
-          {events.cover_image && (
+          {events.coverImage && (
             <img 
-              src={events.cover_image} 
-              alt={events.name}
+              src={events.coverImage} 
+              alt={events.title}
               className="w-full h-full object-cover"
             />
           )}

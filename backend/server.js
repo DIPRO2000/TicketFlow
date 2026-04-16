@@ -6,7 +6,7 @@ import mongoose from "mongoose";
 import cookieParser from "cookie-parser";
 
 //all imports from routes
-import organizerRegRoute from "./routes/organizerReg.js";
+import organizerControllerRoute from "./routes/organizerControllerRoute.js";
 import organizerforgotpass from "./routes/organizerForgotpassword.js";
 import eventControllerroute from "./routes/EventControllerRoute.js";
 import participantcontrollerroute from "./routes/ParticipantRoute.js";
@@ -29,7 +29,7 @@ app.use(cookieParser());
 
 
 // Routes
-app.use("/api",organizerRegRoute);
+app.use("/api",organizerControllerRoute);
 app.use("/api",organizerforgotpass);
 app.use("/api/event",eventControllerroute);
 app.use("/api/participant", participantcontrollerroute);

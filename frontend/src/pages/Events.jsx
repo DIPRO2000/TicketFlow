@@ -122,6 +122,17 @@ export default function Events() {
 
         dataToSend.append("status",data.status);
 
+        // 3. Append cover image
+        if (data.coverImage) {
+          dataToSend.append("coverImage", data.coverImage);
+        }
+        // 4. Append gallery images
+        if (data.gallery && data.gallery.length > 0) {
+          data.gallery.forEach((file, index) => {
+            dataToSend.append(`gallery`, file);
+          });
+        }
+
         // console.log(dataToSend.getAll())
         // for (let pair of dataToSend.entries()) {
         //     console.log(pair[0] + ': ' + pair[1]);
