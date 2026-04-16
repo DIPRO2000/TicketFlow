@@ -87,6 +87,26 @@ export const loginOrganizer = async (req, res) => {
 };
 
 
+// Organizer Logout
+export const logoutOrganizer = async (req, res) => {
+    try {
+        // Clear the organizer_token cookie
+        res.clearCookie("organizer_token", {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "strict",
+        });
+
+        return res.status(200).json({
+            message: "Logged out successfully"
+        });
+    } catch (err) {
+        console.error("Logout Error:", err);
+        return res.status(500).json({ message: "Server error during logout" });
+    }
+};
+
+
 // Organizer Profile Retrieval(like id,name,email)
 export const getOrganizerProfile = async (req,res) => {
     try {

@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { 
   LayoutDashboard, 
   Calendar, 
@@ -7,11 +7,13 @@ import {
   Settings,
   LogOut,
   ChevronLeft,
-  Menu
+  Menu,
+  Loader2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { toast } from "sonner";
 
 const navItems = [
   { name: "Dashboard", icon: LayoutDashboard, page: "dashboard" },
@@ -22,10 +24,42 @@ const navItems = [
 
 export default function Sidebar() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const isActive = (page) => {
     return location.pathname.includes(page);
+  };
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      const backendBaseUrl = import.meta.env.VITE_BACKEND_URL || "";
+      const apiUrl = `${backendBaseUrl.replace(/\/$/, "")}/api/orglogout`;
+
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include", // Crucial for clearing the HTTP-only cookie
+      });
+
+      if (!response.ok) {
+        throw new Error("Logout failed");
+      }
+
+      toast.success("Logged out successfully");
+      
+      // Redirect to login page
+      navigate("/login"); 
+    } catch (error) {
+      toast.error("An error occurred during logout");
+      console.error("Logout error:", error);
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   return (
@@ -55,10 +89,10 @@ export default function Sidebar() {
       <aside className={cn(
         "fixed top-0 left-0 h-full bg-white border-r border-slate-200 z-50 transition-all duration-300",
         "lg:translate-x-0",
-        collapsed ? "-translate-x-full lg:w-23" : "translate-x-0 w-64 lg:w-64"
+        collapsed ? "-translate-x-full lg:w-20" : "translate-x-0 w-64 lg:w-64"
       )}>
         <div className="flex flex-col h-full">
-          {/* Logo */}
+          {/* Logo Section */}
           <div className="h-16 flex items-center justify-between gap-1 px-4 border-b border-slate-100">
             <div className={cn("flex items-center gap-3", collapsed && "lg:justify-center lg:w-full")}>
               <div className="w-9 h-9 bg-slate-900 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -84,12 +118,12 @@ export default function Sidebar() {
             </Button>
           </div>
 
-          {/* Navigation */}
+          {/* Navigation Section */}
           <nav className="flex-1 p-3 space-y-1">
             {navItems.map((item) => (
               <Link
                 key={item.page}
-                to={(item.page)}
+                to={item.page}
                 onClick={() => setCollapsed(true)}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150",
@@ -111,10 +145,10 @@ export default function Sidebar() {
             ))}
           </nav>
 
-          {/* Bottom */}
+          {/* Bottom Section (Settings & Logout) */}
           <div className="p-3 border-t border-slate-100 space-y-1">
             <Link
-              to={("Settings")}
+              to="Settings"
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors",
                 collapsed && "lg:justify-center lg:px-0"
@@ -123,15 +157,23 @@ export default function Sidebar() {
               <Settings className="w-5 h-5" />
               <span className={cn("font-medium text-sm", collapsed && "lg:hidden")}>Settings</span>
             </Link>
+            
             <button
-              // onClick={() => base44.auth.logout()}
+              onClick={handleLogout}
+              disabled={isLoggingOut}
               className={cn(
-                "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-rose-50 hover:text-rose-600 transition-colors",
+                "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-rose-50 hover:text-rose-600 transition-colors disabled:opacity-50",
                 collapsed && "lg:justify-center lg:px-0"
               )}
             >
-              <LogOut className="w-5 h-5" />
-              <span className={cn("font-medium text-sm", collapsed && "lg:hidden")}>Logout</span>
+              {isLoggingOut ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <LogOut className="w-5 h-5" />
+              )}
+              <span className={cn("font-medium text-sm", collapsed && "lg:hidden")}>
+                {isLoggingOut ? "Logging out..." : "Logout"}
+              </span>
             </button>
           </div>
         </div>
