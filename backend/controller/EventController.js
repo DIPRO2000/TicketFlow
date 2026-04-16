@@ -183,3 +183,30 @@ export const allTicket = async (req,res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 }
+
+// Get all Tickets for a specific Event
+export const allTicketsofanEvent = async (req, res) => { 
+  const { eventId } = req.body;
+
+  try {
+    if (!eventId) {
+      return res.status(400).json({ success: false, message: "EventId not provided" });
+    }
+
+    const tickets = await participant.find({ eventId: eventId });
+
+    if (!tickets || tickets.length === 0) {
+      return res.status(404).json({ success: false, message: "No Ticket found yet or bought" });
+    }
+
+    return res.status(200).json({
+      success: true, 
+      message: `All Tickets found Successfully for the event`, 
+      tickets
+    });
+
+  } catch (error) {
+    if (res.headersSent) return;
+    return res.status(500).json({ success: false, error: error.message });
+  }
+}
