@@ -89,8 +89,9 @@ Create a .env file:
 VITE_BACKEND_URL=http://localhost:5000
 VITE_FRONTEND_URL=http://localhost:5173
 ```
+---
 
-🔒 Deployment Tips
+## 🔒 Deployment Tips
 To successfully deploy this project (Vercel + Render), ensure the following:
 
 1. CORS: The FRONTEND_URL in your backend environment must exactly match your Vercel URL (with no trailing /).
@@ -101,7 +102,7 @@ To successfully deploy this project (Vercel + Render), ensure the following:
 
 ---
 
-🤝 Contributing
+## 🤝 Contributing
 Contributions are welcome! Please feel free to submit a Pull Request.
 
 Developed with ❤️ by Diprajit Chakraborty
