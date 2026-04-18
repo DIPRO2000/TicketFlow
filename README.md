@@ -47,6 +47,8 @@
 ├── frontend/           # React SPA, Tailwind components, & state logic
 └── vercel.json         # SPA routing configuration for Vercel
 
+---
+
 💻 Setup & Installation
 
 1. Clone the repository
