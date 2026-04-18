@@ -55,6 +55,7 @@
 ```Bash
 git clone [https://github.com/DIPRO2000/TicketFlow.git](https://github.com/DIPRO2000/TicketFlow.git)
 cd TicketFlow
+```
 
 2. Backend Configuration
 Navigate to the backend folder and install dependencies:
@@ -62,6 +63,8 @@ Navigate to the backend folder and install dependencies:
 ```Bash
 cd backend
 npm install
+```
+
 Create a .env file:
 
 ```Code snippet
@@ -70,6 +73,7 @@ MONGO_URL=your_mongodb_atlas_uri
 ORGANIZER_JWT_SECRET=your_jwt_secret
 FRONTEND_URL=http://localhost:5173
 NODE_ENV=development
+```
 
 3. Frontend Configuration
 Navigate to the frontend folder and install dependencies:
@@ -77,9 +81,27 @@ Navigate to the frontend folder and install dependencies:
 ```Bash
 cd ../frontend
 npm install
+```
 
 Create a .env file:
 
 ```Code snippet
 VITE_BACKEND_URL=http://localhost:5000
 VITE_FRONTEND_URL=http://localhost:5173
+```
+
+🔒 Deployment Tips
+To successfully deploy this project (Vercel + Render), ensure the following:
+
+1. CORS: The FRONTEND_URL in your backend environment must exactly match your Vercel URL (with no trailing /).
+
+2. Cookie Security: The authentication cookies must be set with secure: true and sameSite: "none" to allow cross-domain communication.
+
+3. SPA Routing: Use the included vercel.json file to prevent 404 errors when refreshing the dashboard or visiting direct links.
+
+---
+
+🤝 Contributing
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+Developed with ❤️ by Diprajit Chakraborty
