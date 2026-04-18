@@ -27,7 +27,6 @@ export default function Dashboard() {
   const [ticketsLoading, setTicketsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Edit/Cancel States
   const [showForm, setShowForm] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
   const [cancellingEvent, setCancellingEvent] = useState(null);
@@ -35,7 +34,6 @@ export default function Dashboard() {
 
   const { OrganizerData } = useOutletContext();
 
-  // 1. Fetch events
   const fetchEvents = async() => {
     if (!OrganizerData?._id) return;
     try {
@@ -60,7 +58,6 @@ export default function Dashboard() {
     fetchEvents();
   }, [OrganizerData]);
 
-  // 2. Fetch tickets
   useEffect(() => {
     const fetchTickets = async () => {
       if (!OrganizerData?._id) return;
@@ -86,7 +83,6 @@ export default function Dashboard() {
     fetchTickets();
   }, [OrganizerData]);
 
-  // 3. Handle Edit Submission
   const handleUpdateSubmit = async (data) => {
     setIsActionLoading(true);
     try {
@@ -124,7 +120,6 @@ export default function Dashboard() {
     }
   };
 
-  // 4. Handle Cancel Confirm
   const handleCancelConfirm = async () => {
     if (!cancellingEvent) return;
     try {
@@ -153,13 +148,25 @@ export default function Dashboard() {
     setShowForm(true);
   };
 
+  // FIXED CALCULATION LOGIC
   const calculateStats = () => {
     const totalEvents = events.length;
-    const ticketsSold = tickets.length;
-    const checkedIn = tickets.filter(t => t.isFullyUsed || t.checkedInCount > 0).length;
+    
+    // Sum up the quantities of all purchased tickets
+    const totalTicketsQuantity = tickets.reduce((sum, t) => sum + (t.quantity || 0), 0);
+    
+    // Sum up the checked-in counts of all purchased tickets
+    const totalCheckedIn = tickets.reduce((sum, t) => sum + (t.checkedInCount || 0), 0);
+    
+    // Sum up revenue
     const revenue = tickets.reduce((sum, t) => sum + (parseFloat(t.pricePaid || 0)), 0);
 
-    return { totalEvents, ticketsSold, checkedIn, revenue };
+    return { 
+      totalEvents, 
+      ticketsSold: totalTicketsQuantity, 
+      checkedIn: totalCheckedIn, 
+      revenue 
+    };
   };
 
   const stats = calculateStats();
@@ -177,7 +184,6 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
@@ -190,15 +196,25 @@ export default function Dashboard() {
         </Link>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard title="Total Events" value={stats.totalEvents} icon={Calendar} loading={eventsLoading} />
-        <StatsCard title="Tickets Sold" value={stats.ticketsSold} icon={Ticket} loading={ticketsLoading} />
-        <StatsCard title="Checked In" value={stats.checkedIn} icon={UserCheck} loading={ticketsLoading} />
+        <StatsCard 
+          title="Total People" 
+          value={stats.ticketsSold} 
+          subtitle="Tickets Sold (Qty)"
+          icon={Ticket} 
+          loading={ticketsLoading} 
+        />
+        <StatsCard 
+          title="Checked In" 
+          value={stats.checkedIn} 
+          subtitle={`${stats.ticketsSold > 0 ? ((stats.checkedIn / stats.ticketsSold) * 100).toFixed(1) : 0}% Attendance`}
+          icon={UserCheck} 
+          loading={ticketsLoading} 
+        />
         <StatsCard title="Revenue" value={`₹${stats.revenue.toLocaleString('en-IN')}`} icon={TrendingUp} loading={ticketsLoading} />
       </div>
 
-      {/* Recent Events Section */}
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-slate-900">Recent Events</h2>
@@ -219,7 +235,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Recent Tickets Table */}
       <div>
         <h2 className="text-lg font-semibold text-slate-900 mb-4">Recent Tickets</h2>
         <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
@@ -231,7 +246,7 @@ export default function Dashboard() {
                     <div className="flex items-center gap-4">
                       <div className="bg-indigo-50 p-2 rounded-lg"><Ticket className="w-5 h-5 text-indigo-600" /></div>
                       <div>
-                        <code className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded">{ticket.token}</code>
+                        <code className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded">Qty: {ticket.quantity}</code>
                         <p className="text-sm font-medium text-slate-900 mt-1">{ticket.name}</p>
                       </div>
                     </div>
@@ -249,7 +264,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Modals & Forms */}
       <Sheet open={showForm} onOpenChange={(open) => { if(!open) { setShowForm(false); setEditingEvent(null); } }}>
         <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
           <SheetHeader className="mt-5 px-5">

@@ -94,83 +94,89 @@ export const TicketVerify = async(req,res) => {
 }
 
 
-//Participant Check-in
 export const ParticipantscheckIn = async (req, res) => {
   try {
-    const { participantId, eventId, count } = req.body;
+    const { participantId, eventId } = req.body;
+    // Ensure count is a valid number
+    const count = parseInt(req.body.count);
 
-    // Validate input
-    if (!participantId || !eventId || !count) {
+    // 1. Basic Validation
+    if (!participantId || !eventId || isNaN(count) || count <= 0) {
       return res.status(400).json({ 
         success: false, 
-        message: "Missing required fields: participantId, eventId, and count are required" 
+        message: "Missing or invalid fields: participantId, eventId, and a positive count are required" 
       });
     }
 
-    if (count <= 0) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Count must be greater than 0" 
-      });
-    }
-
+    // 2. Fetch the current state of the participant
     const participant = await Participant.findById(participantId);
     
     if (!participant) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "Participant not found" 
-      });
+      return res.status(404).json({ success: false, message: "Participant not found" });
     }
 
-    // Verify the participant belongs to the correct event
+    // 3. Security: Verify Event Match
     if (participant.eventId.toString() !== eventId) {
-      return res.status(400).json({ 
+      return res.status(403).json({ 
         success: false, 
-        message: "Participant does not belong to this event" 
+        message: "Access Denied: This ticket is not registered for this event" 
       });
     }
 
-    if (participant.isFullyUsed) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Ticket already fully used", 
-        participant 
-      });
-    }
-
+    // 4. Check Availability
     const remainingEntries = participant.quantity - participant.checkedInCount;
     
+    if (participant.isFullyUsed || remainingEntries <= 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Ticket already fully used",
+        remainingEntries: 0
+      });
+    }
+
     if (count > remainingEntries) {
       return res.status(400).json({ 
         success: false, 
-        message: `Cannot check in ${count} users. Only ${remainingEntries} entries remaining`,
-        participant 
+        message: `Only ${remainingEntries} entries remaining on this ticket.`,
+        remainingEntries
       });
     }
 
-    // Update checked in count
-    participant.checkedInCount = participant.checkedInCount + count;
-    
-    // Check if fully used
-    if (participant.checkedInCount >= participant.quantity) {
-      participant.isFullyUsed = true;
-      participant.checkedInCount = participant.quantity; // Ensure it doesn't exceed
-    }
-    
-    await participant.save();
+    // 5. Atomic Update
+    // We use findByIdAndUpdate with $inc and $push to ensure data consistency
+    const newTotalCheckedIn = participant.checkedInCount + count;
+    const fullyUsed = newTotalCheckedIn >= participant.quantity;
+
+    const updatedParticipant = await Participant.findByIdAndUpdate(
+      participantId,
+      {
+        $inc: { checkedInCount: count },
+        $set: { 
+          isFullyUsed: fullyUsed,
+          lastCheckedInAt: new Date() 
+        },
+        $push: { 
+          checkInHistory: { 
+            timestamp: new Date(), 
+            count: count 
+          } 
+        }
+      },
+      { new: true, runValidators: true }
+    );
 
     return res.json({ 
       success: true, 
-      message: `Check-in successful for ${count} user(s)`, 
+      message: `Successfully checked in ${count} user(s)`, 
       participant: {
-        _id: participant._id,
-        name: participant.name,
-        token: participant.token,
-        checkedInCount: participant.checkedInCount,
-        quantity: participant.quantity,
-        isFullyUsed: participant.isFullyUsed,
-        remainingEntries: participant.quantity - participant.checkedInCount
+        _id: updatedParticipant._id,
+        name: updatedParticipant.name,
+        token: updatedParticipant.token,
+        checkedInCount: updatedParticipant.checkedInCount,
+        quantity: updatedParticipant.quantity,
+        isFullyUsed: updatedParticipant.isFullyUsed,
+        remainingEntries: updatedParticipant.quantity - updatedParticipant.checkedInCount,
+        history: updatedParticipant.checkInHistory
       }
     });
 
@@ -178,7 +184,7 @@ export const ParticipantscheckIn = async (req, res) => {
     console.error("Check-in error:", err);
     return res.status(500).json({ 
       success: false, 
-      message: "Server error during check-in",
+      message: "Server error during check-in processing",
       error: err.message 
     });
   }

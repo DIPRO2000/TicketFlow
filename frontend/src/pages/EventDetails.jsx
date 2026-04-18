@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
+import * as XLSX from "xlsx"; // Import the xlsx library
 import { 
   ArrowLeft, 
   Calendar, 
@@ -12,7 +13,8 @@ import {
   Check,
   Download,
   Search,
-  Plus
+  Plus,
+  Clock
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -21,7 +23,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import StatusBadge from "@/components/ui/StatusBadge";
-import TicketRow from "@/components/tickets/TicketRow";
 import EventForm from "@/components/forms/EventForm";
 
 export default function EventDetails() {
@@ -38,7 +39,6 @@ export default function EventDetails() {
   const params = new URLSearchParams(window.location.search);
   const eventId = params.get("id");
 
-  // Determine if the event is in a terminal state (Locked)
   const isLocked = events?.status === "Cancelled" || events?.status === "Completed";
 
   const fetchEventDetails = async () => {
@@ -86,6 +86,43 @@ export default function EventDetails() {
     if (eventId) fetchTickets();
   }, [eventId]);
 
+  // NEW: Handle Excel Export
+  const handleExportExcel = () => {
+    if (tickets.length === 0) {
+      toast.error("No ticket data to export");
+      return;
+    }
+
+    // Format data for Excel
+    const exportData = tickets.map(t => ({
+      "Token": t.token,
+      "Purchaser Name": t.name,
+      "Email": t.email,
+      "Phone": t.phone || "N/A",
+      "Ticket Type": t.ticketType,
+      "Quantity": t.quantity,
+      "Price Paid": `₹${t.pricePaid}`,
+      "Checked In": t.checkedInCount,
+      "Status": t.isFullyUsed ? "Fully Used" : "Active",
+      "Purchase Date": format(new Date(t.purchasedAt), "yyyy-MM-dd HH:mm"),
+      "Last Check-in": t.lastCheckedInAt ? format(new Date(t.lastCheckedInAt), "yyyy-MM-dd HH:mm") : "Never"
+    }));
+
+    // Create worksheet and workbook
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Attendees");
+
+    // Fix column widths automatically
+    const maxWidths = Object.keys(exportData[0]).map(key => ({ wch: Math.max(key.length, 15) }));
+    worksheet["!cols"] = maxWidths;
+
+    // Trigger download
+    const fileName = `${events.title.replace(/\s+/g, '_')}_Attendees.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+    toast.success("Excel sheet downloaded successfully!");
+  };
+
   const handleCopy = async () => {
     const publicLink = `${import.meta.env.VITE_FRONTEND_URL}/link/${events.eventLinkId}`;
     try {
@@ -106,13 +143,10 @@ export default function EventDetails() {
     setShowEditForm(true);
   };
 
-  // FIXED: Added handleUpdateSubmit to call the PUT API
   const handleUpdateSubmit = async (formData) => {
     setIsUpdating(true);
     try {
       const dataToSend = new FormData();
-      
-      // Append basic fields
       dataToSend.append("title", formData.title);
       dataToSend.append("description", formData.description);
       dataToSend.append("category", formData.category);
@@ -122,7 +156,6 @@ export default function EventDetails() {
       dataToSend.append("venue", JSON.stringify(formData.venue));
       dataToSend.append("tickets", JSON.stringify(formData.tickets));
 
-      // Append files only if they are new File instances
       if (formData.coverImage instanceof File) {
         dataToSend.append("coverImage", formData.coverImage);
       }
@@ -139,11 +172,10 @@ export default function EventDetails() {
       });
 
       const result = await response.json();
-
       if (result.success) {
         toast.success("Event updated successfully!");
         setShowEditForm(false);
-        fetchEventDetails(); // Refresh the page data
+        fetchEventDetails();
       } else {
         toast.error(result.message || "Failed to update event");
       }
@@ -170,7 +202,7 @@ export default function EventDetails() {
     );
   }
 
-  if (!events) return <div className="p-10 text-center">Event not found.</div>;
+  if (!events) return <div className="p-10 text-center text-slate-500 font-medium">Event not found.</div>;
 
   return (
     <div className="space-y-6">
@@ -196,9 +228,9 @@ export default function EventDetails() {
       </div>
 
       {/* Info Card */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
         <div className="h-48 bg-slate-100 relative">
-          {events.coverImage && <img src={events.coverImage} className="w-full h-full object-cover" />}
+          {events.coverImage && <img src={events.coverImage} className="w-full h-full object-cover" alt="Cover" />}
           {isLocked && (
             <div className="absolute inset-0 bg-slate-900/10 backdrop-blur-[1px] flex items-center justify-center">
                <span className="bg-white/90 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider text-slate-900 shadow-sm border border-slate-200">
@@ -210,30 +242,30 @@ export default function EventDetails() {
         <div className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div>
-              <p className="text-sm text-slate-500 flex items-center gap-1"><Calendar className="w-4 h-4"/> Date</p>
-              <p className="font-medium">{format(new Date(events.startDate), "MMM d, yyyy")}</p>
+              <p className="text-sm text-slate-500 flex items-center gap-1 font-medium"><Calendar className="w-4 h-4"/> Date</p>
+              <p className="font-semibold text-slate-900">{format(new Date(events.startDate), "MMM d, yyyy")}</p>
             </div>
             <div>
-              <p className="text-sm text-slate-500 flex items-center gap-1"><MapPin className="w-4 h-4"/> Venue</p>
-              <p className="font-medium text-slate-900 line-clamp-1">{events.venue.city}, {events.venue.name}</p>
+              <p className="text-sm text-slate-500 flex items-center gap-1 font-medium"><MapPin className="w-4 h-4"/> Venue</p>
+              <p className="font-semibold text-slate-900 line-clamp-1">{events.venue.city}, {events.venue.name}</p>
             </div>
             <div>
-              <p className="text-sm text-slate-500 flex items-center gap-1"><Ticket className="w-4 h-4"/> Sold</p>
-              <p className="font-medium">{events.totalTicketsSold} Tickets</p>
+              <p className="text-sm text-slate-500 flex items-center gap-1 font-medium"><Ticket className="w-4 h-4"/> Sold</p>
+              <p className="font-semibold text-slate-900">{events.totalTicketsSold} Tickets</p>
             </div>
             <div>
-              <p className="text-sm text-slate-500">Public Link</p>
+              <p className="text-sm text-slate-500 font-medium">Public Link</p>
               {events.status === "Published" ? (
                 <div className="flex items-center gap-2 mt-1">
-                  <span className="text-xs text-blue-600 truncate max-w-[120px]">
+                  <span className="text-xs text-blue-600 truncate max-w-[120px] font-medium">
                     {import.meta.env.VITE_FRONTEND_URL}/link/{events.eventLinkId}
                   </span>
-                  <Button size="icon" variant="ghost" className="h-7 w-7 border" onClick={handleCopy}>
-                    {copied ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />}
+                  <Button size="icon" variant="ghost" className="h-7 w-7 border hover:bg-slate-50" onClick={handleCopy}>
+                    {copied ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3 text-slate-500" />}
                   </Button>
                 </div>
               ) : (
-                <p className="text-xs text-slate-400 italic mt-1 font-medium">Link available when published</p>
+                <p className="text-xs text-slate-400 italic mt-1">Link available when published</p>
               )}
             </div>
           </div>
@@ -242,28 +274,28 @@ export default function EventDetails() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="bg-slate-100">
+        <TabsList className="bg-slate-100 p-1">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="tickets">Tickets ({tickets.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-6 space-y-6">
-          <div className="bg-white rounded-2xl border border-slate-200 p-6">
-            <h3 className="text-lg font-semibold mb-4">Ticket Availability</h3>
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+            <h3 className="text-lg font-bold text-slate-900 mb-4">Ticket Sales Breakdown</h3>
             <div className="grid gap-4">
               {events.tickets?.map((type, index) => (
-                <div key={index} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
+                <div key={index} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
                   <div>
-                    <h4 className="font-medium text-slate-900">{type.type}</h4>
-                    <p className="text-sm text-slate-500">{type.sold} / {type.quantity} Sold</p>
+                    <h4 className="font-bold text-slate-800">{type.type}</h4>
+                    <p className="text-sm text-slate-500 font-medium">{type.sold} / {type.quantity} Sold</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold text-slate-900">₹{type.price}</p>
-                    <div className="w-32 h-1.5 bg-slate-200 rounded-full mt-2">
+                    <p className="font-bold text-slate-900 text-lg">₹{type.price}</p>
+                    <div className="w-32 h-2 bg-slate-200 rounded-full mt-2 overflow-hidden">
                       <div 
                         className={cn(
-                          "h-full rounded-full transition-all duration-500",
-                          events.status === "Cancelled" ? "bg-slate-400" : "bg-slate-900"
+                          "h-full rounded-full transition-all duration-700",
+                          events.status === "Cancelled" ? "bg-slate-400" : "bg-indigo-600"
                         )}
                         style={{ width: `${(type.sold / type.quantity) * 100}%` }}
                       />
@@ -276,57 +308,74 @@ export default function EventDetails() {
         </TabsContent>
 
         <TabsContent value="tickets" className="mt-6">
-          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-            <div className="p-4 border-b flex gap-4">
+          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+            <div className="p-4 border-b flex gap-4 bg-slate-50/30">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <Input 
                   placeholder="Search by name, email or token..." 
-                  className="pl-10" 
+                  className="pl-10 h-10" 
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
-              <Button variant="outline"><Download className="w-4 h-4 mr-2" /> Export</Button>
+              <Button 
+                variant="outline" 
+                className="h-10"
+                onClick={handleExportExcel}
+              >
+                <Download className="w-4 h-4 mr-2" /> Export
+              </Button>
             </div>
             
             {ticketsLoading ? (
-               <div className="p-10 text-center text-slate-500">Loading tickets...</div>
+               <div className="p-12 text-center text-slate-500 font-medium">Loading tickets...</div>
             ) : filteredTickets.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
-                  <thead className="bg-slate-50 text-xs text-slate-500 uppercase font-semibold">
+                  <thead className="bg-slate-50 text-[11px] text-slate-500 uppercase font-bold tracking-wider">
                     <tr>
                       <th className="p-4 border-b border-slate-100">Token</th>
-                      <th className="p-4 border-b border-slate-100">Type</th>
                       <th className="p-4 border-b border-slate-100">Purchaser</th>
                       <th className="p-4 border-b border-slate-100 text-center">Qty</th>
-                      <th className="p-4 border-b border-slate-100">Price</th>
                       <th className="p-4 border-b border-slate-100">Usage</th>
-                      <th className="p-4 border-b border-slate-100">Date</th>
+                      <th className="p-4 border-b border-slate-100">Purchase Date</th>
+                      <th className="p-4 border-b border-slate-100">Last Check-in</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-slate-100">
                     {filteredTickets.map(ticket => (
-                      <tr key={ticket._id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                        <td className="p-4 font-mono font-medium text-slate-900 text-sm">{ticket.token}</td>
-                        <td className="p-4 text-slate-600 text-sm">{ticket.ticketType}</td>
+                      <tr key={ticket._id} className="hover:bg-slate-50/50 transition-colors">
                         <td className="p-4">
-                          <div className="text-sm font-medium text-slate-900">{ticket.name}</div>
-                          <div className="text-xs text-slate-500">{ticket.email}</div>
+                          <code className="font-mono font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded text-xs">
+                            {ticket.token}
+                          </code>
                         </td>
-                        <td className="p-4 text-slate-600 text-sm text-center">{ticket.quantity}</td>
-                        <td className="p-4 text-slate-900 text-sm font-medium">₹{ticket.pricePaid}</td>
+                        <td className="p-4">
+                          <div className="text-sm font-bold text-slate-900">{ticket.name}</div>
+                          <div className="text-xs text-slate-500 font-medium">{ticket.email}</div>
+                        </td>
+                        <td className="p-4 text-slate-700 text-sm text-center font-bold">{ticket.quantity}</td>
                         <td className="p-4">
                           <span className={cn(
-                            "px-2 py-1 rounded-full text-[10px] font-bold uppercase",
-                            ticket.isFullyUsed ? "bg-slate-100 text-slate-500" : "bg-green-100 text-green-700"
+                            "px-2.5 py-1 rounded-full text-[10px] font-bold uppercase",
+                            ticket.isFullyUsed ? "bg-slate-100 text-slate-500" : "bg-emerald-100 text-emerald-700"
                           )}>
                             {ticket.checkedInCount}/{ticket.quantity} In
                           </span>
                         </td>
-                        <td className="p-4 text-slate-500 text-sm">
+                        <td className="p-4 text-slate-600 text-xs font-medium">
                           {format(new Date(ticket.purchasedAt), "MMM d, HH:mm")}
+                        </td>
+                        <td className="p-4">
+                          {ticket.lastCheckedInAt ? (
+                            <div className="flex items-center gap-1.5 text-slate-700 font-semibold text-xs">
+                                <Clock className="w-3.5 h-3.5 text-emerald-500" />
+                                {format(new Date(ticket.lastCheckedInAt), "MMM d, HH:mm")}
+                            </div>
+                          ) : (
+                            <span className="text-slate-300 italic text-xs font-medium">Never scanned</span>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -334,19 +383,17 @@ export default function EventDetails() {
                 </table>
               </div>
             ) : (
-              <div className="p-12 text-center text-slate-500">No tickets found for this event.</div>
+              <div className="p-16 text-center text-slate-500 font-medium">No tickets found for this event.</div>
             )}
           </div>
         </TabsContent>
       </Tabs>
       
       {/* Edit Sheet */}
-      <Sheet open={showEditForm} onOpenChange={(open) => {
-          if(!open) setShowEditForm(false);
-      }}>
+      <Sheet open={showEditForm} onOpenChange={(open) => { if(!open) setShowEditForm(false); }}>
         <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
           <SheetHeader className="mt-5 px-5">
-            <SheetTitle className="text-2xl">Edit Event</SheetTitle>
+            <SheetTitle className="text-2xl font-bold">Edit Event</SheetTitle>
           </SheetHeader>
           <div className="px-5 py-5">
             <EventForm

@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-// A small helper to generate random codes (you can also use uuid)
+// Helper to generate unique codes
 const generateToken = () => {
   return Math.random().toString(36).substring(2, 8).toUpperCase(); // e.g. "X4H9PQ"
 };
@@ -14,7 +14,7 @@ const participantSchema = new mongoose.Schema({
 
   organizerID: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Event",
+    ref: "Organizer", // Fixed: Should refer to Organizer model
     required: true
   },
 
@@ -22,13 +22,19 @@ const participantSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
+    trim: true,
   },
   email: {
     type: String,
     required: true,
+    lowercase: true,
+    trim: true,
   },
   
-  phone: String,
+  phone: {
+    type: String,
+    required: true,
+  },
 
   // Which ticket they bought
   ticketType: {
@@ -44,10 +50,9 @@ const participantSchema = new mongoose.Schema({
   token: {
     type: String,
     unique: true,
-    default: generateToken, // automatically generated on create
+    default: generateToken,
   },
 
-  // new field for screenshot/payment image URL
   paymentProof: {
     type: String,
   },
@@ -56,25 +61,40 @@ const participantSchema = new mongoose.Schema({
   quantity: {
     type: Number,
     required: true,
-    default: 1, //
+    default: 1,
   },
 
   // Track how many people have already entered using this token
   checkedInCount: {
     type: Number,
-    default: 0, //
+    default: 0,
   },
 
-  // to check if the group is fully checked in
+  // Logic flag for "Access Denied" once full
   isFullyUsed: {
     type: Boolean,
-    default: false, //
+    default: false,
   },
 
   purchasedAt: {
     type: Date,
     default: Date.now,
   },
+
+  // UPDATED: Check-in History Logic
+  // Stores a list of every time a part of the group entered
+  checkInHistory: [
+    {
+      timestamp: { type: Date, default: Date.now },
+      count: { type: Number, required: true },
+    }
+  ],
+
+  // Keep this for quick "Last Entry" reference if you want
+  lastCheckedInAt: {
+    type: Date,
+    default: null,
+  }
 });
 
 export default mongoose.model("Participant", participantSchema);
