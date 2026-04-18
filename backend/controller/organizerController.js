@@ -72,7 +72,7 @@ export const loginOrganizer = async (req, res) => {
         res.cookie("organizer_token", token, {
             httpOnly: true,        // JS cannot access it (XSS protection)
             secure: process.env.NODE_ENV === "production", // HTTPS only in prod
-            sameSite: "strict",    // CSRF protection
+            sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",    // CSRF protection
             maxAge: 24 * 60 * 60 * 1000 // 1 hour * 24
         });
 
@@ -94,7 +94,7 @@ export const logoutOrganizer = async (req, res) => {
         res.clearCookie("organizer_token", {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
-            sameSite: "strict",
+            sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
         });
 
         return res.status(200).json({
