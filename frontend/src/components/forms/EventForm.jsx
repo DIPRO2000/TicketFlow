@@ -9,13 +9,12 @@ import { Plus, Trash2 } from "lucide-react";
 const generateId = () => Math.random().toString(36).substring(2, 15);
 
 export default function EventForm({ event, onSubmit, onCancel, isLoading, organizerDetails }) {
-  // aligned with Mongoose Schema
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     category: "",
     email: organizerDetails?.email || "",
-    organizer: organizerDetails?.name || "",
+    organizer: organizerDetails?.Orgname || "",
     organizerID: organizerDetails?._id || "",
     startDate: "",
     endDate: "",
@@ -37,12 +36,13 @@ export default function EventForm({ event, onSubmit, onCancel, isLoading, organi
     if (event) {
       setFormData({
         ...event,
+        // Ensure category is a string and handle potential undefined
+        category: event.category ? String(event.category) : "", 
         startDate: event.startDate ? new Date(event.startDate).toISOString().slice(0, 16) : "",
         endDate: event.endDate ? new Date(event.endDate).toISOString().slice(0, 16) : "",
         venue: event.venue || formData.venue,
-        tickets: event.tickets?.length > 0 
-          ? event.tickets 
-          : formData.tickets
+        status: event.status || "Draft",
+        tickets: event.tickets?.length > 0 ? event.tickets : formData.tickets
       });
     }
   }, [event]);
@@ -86,27 +86,26 @@ export default function EventForm({ event, onSubmit, onCancel, isLoading, organi
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
-      {/* Basic Info */}
+    <form onSubmit={handleSubmit} className="space-y-8 pb-10">
       <div className="space-y-6">
-        <h3 className="text-lg font-semibold text-slate-900">Event Details</h3>
-        
+        <h3 className="text-lg font-semibold text-slate-900 border-b pb-2">Event Details</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="md:col-span-2 space-y-2">
             <Label htmlFor="title">Event Title *</Label>
-            <Input
-              id="title"
-              value={formData.title}
-              onChange={(e) => handleChange("title", e.target.value)}
-              placeholder="e.g. Tech Summit 2026"
-              required
-              className="h-11"
-            />
+            <Input id="title" value={formData.title} onChange={(e) => handleChange("title", e.target.value)} required />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="category">Category *</Label>
-            <Select value={formData.category} onValueChange={(val) => handleChange("category", val)}>
+            {/* FIX: We add 'key={formData.category}' 
+              This forces the Select component to update its internal display 
+              when the state changes from "" to "Sports" during editing.
+            */}
+            <Select 
+              key={formData.category || "new"}
+              value={formData.category} 
+              onValueChange={(val) => handleChange("category", val)}
+            >
               <SelectTrigger className="h-11">
                 <SelectValue placeholder="Select Category" />
               </SelectTrigger>
@@ -122,211 +121,73 @@ export default function EventForm({ event, onSubmit, onCancel, isLoading, organi
 
           <div className="space-y-2">
             <Label htmlFor="email">Organizer Email *</Label>
-            <Input
-              id="email"
-              type="email"
-              value={formData.email}
-              onChange={(e) => handleChange("email", e.target.value)}
-              placeholder="contact@organizer.com"
-              required
-              className="h-11"
-            />
+            <Input id="email" type="email" value={formData.email} onChange={(e) => handleChange("email", e.target.value)} required />
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="startDate">Start Date & Time *</Label>
-            <Input
-              id="startDate"
-              type="datetime-local"
-              value={formData.startDate}
-              onChange={(e) => handleChange("startDate", e.target.value)}
-              required
-              className="h-11"
-            />
+            <Label htmlFor="startDate">Start Date *</Label>
+            <Input id="startDate" type="datetime-local" value={formData.startDate} onChange={(e) => handleChange("startDate", e.target.value)} required />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="endDate">End Date & Time *</Label>
-            <Input
-              id="endDate"
-              type="datetime-local"
-              value={formData.endDate}
-              onChange={(e) => handleChange("endDate", e.target.value)}
-              required
-              className="h-11"
-            />
+            <Label htmlFor="endDate">End Date *</Label>
+            <Input id="endDate" type="datetime-local" value={formData.endDate} onChange={(e) => handleChange("endDate", e.target.value)} required />
           </div>
-          
+
           <div className="md:col-span-2 space-y-2">
             <Label htmlFor="description">Description *</Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => handleChange("description", e.target.value)}
-              placeholder="Describe your event..."
-              rows={4}
-              required
-            />
+            <Textarea id="description" value={formData.description} onChange={(e) => handleChange("description", e.target.value)} required rows={4} />
           </div>
         </div>
       </div>
 
-      {/* Venue Info */}
       <div className="space-y-6">
-        <h3 className="text-lg font-semibold text-slate-900">Venue Details</h3>
+        <h3 className="text-lg font-semibold text-slate-900 border-b pb-2">Venue Details</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-2">
-            <Label>Venue Name *</Label>
-            <Input
-              value={formData.venue.name}
-              onChange={(e) => handleVenueChange("name", e.target.value)}
-              placeholder="Grand Ballroom"
-              required
-              className="h-11"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Address *</Label>
-            <Input
-              value={formData.venue.address}
-              onChange={(e) => handleVenueChange("address", e.target.value)}
-              placeholder="123 Street Name"
-              required
-              className="h-11"
-            />
-          </div>
+          <Input placeholder="Venue Name" value={formData.venue.name} onChange={(e) => handleVenueChange("name", e.target.value)} required />
+          <Input placeholder="Address" value={formData.venue.address} onChange={(e) => handleVenueChange("address", e.target.value)} required />
           <div className="grid grid-cols-2 gap-4">
-             <div className="space-y-2">
-                <Label>City *</Label>
-                <Input
-                  value={formData.venue.city}
-                  onChange={(e) => handleVenueChange("city", e.target.value)}
-                  placeholder="Kolkata"
-                  required
-                />
-             </div>
-             <div className="space-y-2">
-                <Label>Pincode *</Label>
-                <Input
-                  value={formData.venue.pincode}
-                  onChange={(e) => handleVenueChange("pincode", e.target.value)}
-                  placeholder="700001"
-                  required
-                />
-             </div>
+            <Input placeholder="City" value={formData.venue.city} onChange={(e) => handleVenueChange("city", e.target.value)} required />
+            <Input placeholder="Pincode" value={formData.venue.pincode} onChange={(e) => handleVenueChange("pincode", e.target.value)} required />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="status">Event Status</Label>
-            <Select value={formData.status} onValueChange={(val) => handleChange("status", val)}>
-              <SelectTrigger className="h-11">
-                <SelectValue placeholder="Draft" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Draft">Draft</SelectItem>
-                <SelectItem value="Published">Published</SelectItem>
-                <SelectItem value="Cancelled">Cancelled</SelectItem>
-                <SelectItem value="Completed">Completed</SelectItem>
-              </SelectContent>
-            </Select>
+          
+          {/* Status Select also gets a key for sync */}
+          <Select 
+            key={formData.status || "draft-key"}
+            value={formData.status} 
+            onValueChange={(val) => handleChange("status", val)}
+          >
+            <SelectTrigger className="h-11"><SelectValue placeholder="Draft" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Draft">Draft</SelectItem>
+              <SelectItem value="Published">Published</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold text-slate-900 border-b pb-2">Tickets</h3>
+        {formData.tickets.map((t, index) => (
+          <div key={t.id || index} className="flex gap-4 p-4 bg-slate-50 rounded-xl border">
+            <Input className="flex-1" placeholder="Type" value={t.type} onChange={(e) => handleTicketChange(index, "type", e.target.value)} required />
+            <Input className="w-24" type="number" placeholder="Price" value={t.price} onChange={(e) => handleTicketChange(index, "price", e.target.value)} required />
+            <Input className="w-24" type="number" placeholder="Qty" value={t.quantity} onChange={(e) => handleTicketChange(index, "quantity", e.target.value)} required />
+            <Button type="button" variant="ghost" onClick={() => removeTicketType(index)} disabled={formData.tickets.length === 1}><Trash2 className="w-4 h-4" /></Button>
           </div>
-        </div>
+        ))}
+        <Button type="button" variant="outline" size="sm" onClick={addTicketType}><Plus className="w-4 h-4 mr-1" /> Add Ticket Type</Button>
       </div>
 
-      {/* Ticket Types */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-slate-900">Ticket Categories</h3>
-          <Button type="button" variant="outline" size="sm" onClick={addTicketType}>
-            <Plus className="w-4 h-4 mr-1" /> Add Ticket Type
-          </Button>
-        </div>
-        
-        <div className="space-y-4">
-          {formData.tickets.map((t, index) => (
-            <div 
-              key={t.id} 
-              className="flex flex-col sm:flex-row gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200"
-            >
-              <div className="flex-1 space-y-2">
-                <Label>Type Name (e.g. VIP)</Label>
-                <Input
-                  value={t.type}
-                  onChange={(e) => handleTicketChange(index, "type", e.target.value)}
-                  placeholder="Ticket type"
-                  required
-                />
-              </div>
-              <div className="w-full sm:w-32 space-y-2">
-                <Label>Price</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  value={t.price}
-                  onChange={(e) => handleTicketChange(index, "price", parseFloat(e.target.value) || 0)}
-                  required
-                />
-              </div>
-              <div className="w-full sm:w-32 space-y-2">
-                <Label>Quantity</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  value={t.quantity}
-                  onChange={(e) => handleTicketChange(index, "quantity", parseInt(e.target.value) || 0)}
-                  required
-                />
-              </div>
-              <div className="flex items-end">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => removeTicketType(index)}
-                  disabled={formData.tickets.length === 1}
-                  className="text-slate-400 hover:text-rose-600"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
+        <Label>Images</Label>
+        <Input type="file" onChange={(e) => handleChange("coverImage", e.target.files[0])} />
+        <Input type="file" multiple onChange={(e) => handleChange("gallery", Array.from(e.target.files))} />
       </div>
 
-      {/* Image URL */}
-      <div className="space-y-4">
-        {/* Cover Image Input (Single File) */}
-        <div className="space-y-2">
-          <Label htmlFor="coverImage">Cover Image</Label>
-          <Input
-            id="coverImage"
-            type="file"
-            accept="image/*"
-            onChange={(e) => handleChange("coverImage", e.target.files[0])}
-            className="h-11"
-          />
-        </div>
-
-        {/* Gallery Input (Multiple Files) */}
-        <div className="space-y-2">
-          <Label htmlFor="gallery">Gallery Images</Label>
-          <Input
-            id="gallery"
-            type="file"
-            multiple
-            accept="image/*"
-            onChange={(e) => handleChange("gallery", e.target.files)}
-            className="h-11"
-          />
-        </div>
-      </div>
-
-      {/* Actions */}
-      <div className="flex items-center justify-end gap-3 pt-6 border-t border-slate-200">
-        <Button type="button" variant="outline" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button type="submit" disabled={isLoading} className="bg-slate-900 hover:bg-slate-800 text-white px-8">
+      <div className="flex justify-end gap-3 pt-6 border-t">
+        <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
+        <Button type="submit" disabled={isLoading} className="bg-slate-900 text-white">
           {isLoading ? "Saving..." : event ? "Update Event" : "Create Event"}
         </Button>
       </div>

@@ -49,23 +49,35 @@ export default function Events() {
     setIsLoading(true);
     try {
       const dataToSend = new FormData();
+      
+      // Basic Fields
       dataToSend.append("title", data.title);
       dataToSend.append("description", data.description);
       dataToSend.append("category", data.category);
       dataToSend.append("organizer", OrganizerData.Orgname);
       dataToSend.append("organizerID", OrganizerData._id);
       dataToSend.append("email", OrganizerData.email);
-      dataToSend.append("venue", JSON.stringify(data.venue));
       dataToSend.append("startDate", data.startDate);
       dataToSend.append("endDate", data.endDate);
-      dataToSend.append("tickets", JSON.stringify(data.tickets));
       dataToSend.append("status", data.status);
 
-      if (data.coverImage) dataToSend.append("coverImage", data.coverImage);
-      if (data.gallery) {
-        data.gallery.forEach((file) => dataToSend.append(`gallery`, file));
+      // JSON Fields
+      dataToSend.append("venue", JSON.stringify(data.venue));
+      dataToSend.append("tickets", JSON.stringify(data.tickets));
+
+      // Image Fields
+      if (data.coverImage instanceof File) {
+        dataToSend.append("coverImage", data.coverImage);
+      }
+      if (data.gallery && data.gallery.length > 0) {
+        data.gallery.forEach((file) => {
+          if (file instanceof File) {
+            dataToSend.append(`gallery`, file);
+          }
+        });
       }
 
+      // Logic to toggle between Create and Edit
       const url = editingEvent 
         ? `${import.meta.env.VITE_BACKEND_URL}/api/event/update/${editingEvent._id}` 
         : `${import.meta.env.VITE_BACKEND_URL}/api/event/registration`;
@@ -81,11 +93,10 @@ export default function Events() {
       const responseData = await res.json();
 
       if (res.ok) {
-        toast.success(editingEvent ? "Event updated successfully" : "Event created successfully");
+        toast.success(editingEvent ? "Event updated successfully!" : "Event created successfully!");
         setShowForm(false);
         setEditingEvent(null);
-        // Refresh the list to show new/updated data
-        fetchEvents();
+        fetchEvents(); // Refresh the list
       } else {
         toast.error(responseData.message || "Failed to save event");
       }
@@ -142,7 +153,7 @@ export default function Events() {
           <h1 className="text-2xl font-bold text-slate-900">Events</h1>
           <p className="text-slate-500 mt-1">{events.length} total events</p>
         </div>
-        <Button className="bg-slate-900 hover:bg-slate-800" onClick={() => setShowForm(true)}>
+        <Button className="bg-slate-900 hover:bg-slate-800" onClick={() => { setEditingEvent(null); setShowForm(true); }}>
           <Plus className="w-4 h-4 mr-2" /> Create Event
         </Button>
       </div>
@@ -203,7 +214,7 @@ export default function Events() {
         </SheetContent>
       </Sheet>
 
-      {/* Confirmation */}
+      {/* Confirmation Dialog */}
       <ConfirmDialog
         open={!!cancellingEvent}
         onOpenChange={() => setCancellingEvent(null)}

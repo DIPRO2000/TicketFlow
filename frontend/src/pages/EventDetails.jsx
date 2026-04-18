@@ -33,6 +33,7 @@ export default function EventDetails() {
   const [isLoading, setIsLoading] = useState(false);
   const [ticketsLoading, setTicketsLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const params = new URLSearchParams(window.location.search);
   const eventId = params.get("id");
@@ -40,25 +41,26 @@ export default function EventDetails() {
   // Determine if the event is in a terminal state (Locked)
   const isLocked = events?.status === "Cancelled" || events?.status === "Completed";
 
-  useEffect(() => {
-    const fetchEvents = async () => {
-      setIsLoading(true);
-      try {
-        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/event/getDetails/${eventId}`, {
-          method: "GET",
-          credentials: "include"
-        });
-        const data = await response.json();
-        if (data.success) {
-          setEvents(data.event);
-        }
-      } catch (error) {
-        console.error("Error fetching events:", error);
-      } finally {
-        setIsLoading(false);
+  const fetchEventDetails = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/event/getDetails/${eventId}`, {
+        method: "GET",
+        credentials: "include"
+      });
+      const data = await response.json();
+      if (data.success) {
+        setEvents(data.event);
       }
-    };
-    if (eventId) fetchEvents();
+    } catch (error) {
+      console.error("Error fetching events:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (eventId) fetchEventDetails();
   }, [eventId]);
 
   useEffect(() => {
@@ -104,13 +106,62 @@ export default function EventDetails() {
     setShowEditForm(true);
   };
 
+  // FIXED: Added handleUpdateSubmit to call the PUT API
+  const handleUpdateSubmit = async (formData) => {
+    setIsUpdating(true);
+    try {
+      const dataToSend = new FormData();
+      
+      // Append basic fields
+      dataToSend.append("title", formData.title);
+      dataToSend.append("description", formData.description);
+      dataToSend.append("category", formData.category);
+      dataToSend.append("startDate", formData.startDate);
+      dataToSend.append("endDate", formData.endDate);
+      dataToSend.append("status", formData.status);
+      dataToSend.append("venue", JSON.stringify(formData.venue));
+      dataToSend.append("tickets", JSON.stringify(formData.tickets));
+
+      // Append files only if they are new File instances
+      if (formData.coverImage instanceof File) {
+        dataToSend.append("coverImage", formData.coverImage);
+      }
+      if (formData.gallery && Array.isArray(formData.gallery)) {
+        formData.gallery.forEach((file) => {
+          if (file instanceof File) dataToSend.append("gallery", file);
+        });
+      }
+
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/event/update/${eventId}`, {
+        method: "PUT",
+        body: dataToSend,
+        credentials: "include"
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast.success("Event updated successfully!");
+        setShowEditForm(false);
+        fetchEventDetails(); // Refresh the page data
+      } else {
+        toast.error(result.message || "Failed to update event");
+      }
+    } catch (error) {
+      console.error("Update error:", error);
+      toast.error("An error occurred during update");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   const filteredTickets = tickets.filter(ticket => 
     ticket.token?.toLowerCase().includes(search.toLowerCase()) ||
     ticket.name?.toLowerCase().includes(search.toLowerCase()) ||
     ticket.email?.toLowerCase().includes(search.toLowerCase())
   );
 
-  if (isLoading) {
+  if (isLoading && !events) {
     return (
       <div className="space-y-6 animate-pulse p-6">
         <div className="h-8 w-48 bg-slate-200 rounded" />
@@ -289,18 +340,22 @@ export default function EventDetails() {
         </TabsContent>
       </Tabs>
       
-      {/* Edit Sheet with guard check */}
+      {/* Edit Sheet */}
       <Sheet open={showEditForm} onOpenChange={(open) => {
           if(!open) setShowEditForm(false);
       }}>
         <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
-          <SheetHeader><SheetTitle>Edit Event</SheetTitle></SheetHeader>
-          <EventForm
-            event={events}
-            onSubmit={(data) => console.log(data)}
-            onCancel={() => setShowEditForm(false)}
-            isLoading={isLoading}
-          />
+          <SheetHeader className="mt-5 px-5">
+            <SheetTitle className="text-2xl">Edit Event</SheetTitle>
+          </SheetHeader>
+          <div className="px-5 py-5">
+            <EventForm
+              event={events}
+              onSubmit={handleUpdateSubmit}
+              onCancel={() => setShowEditForm(false)}
+              isLoading={isUpdating}
+            />
+          </div>
         </SheetContent>
       </Sheet>
     </div>

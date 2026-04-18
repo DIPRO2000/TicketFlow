@@ -71,6 +71,83 @@ export const createEvent = async (req, res) => {
   }
 };
 
+// ✅ Update Event
+export const updateEvent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      title,
+      description,
+      category,
+      venue,
+      startDate,
+      endDate,
+      tickets,
+      status,
+    } = req.body;
+
+    // 1. Find the existing event first
+    const existingEvent = await Event.findById(id);
+    if (!existingEvent) {
+      return res.status(404).json({ success: false, message: "Event not found" });
+    }
+
+    // 2. Prepare the update object
+    const updateData = {
+      title,
+      description,
+      category,
+      startDate,
+      endDate,
+      status,
+      updatedAt: Date.now(),
+    };
+
+    // Parse JSON strings from FormData
+    if (venue) updateData.venue = typeof venue === "string" ? JSON.parse(venue) : venue;
+    if (tickets) updateData.tickets = typeof tickets === "string" ? JSON.parse(tickets) : tickets;
+
+    // 3. Handle Cover Image Update
+    if (req.files?.coverImage) {
+      const coverUpload = await uploadBufferToCloudinary(
+        req.files.coverImage[0].buffer,
+        { folder: `Ticketrise/events/${title || existingEvent.title}/cover` }
+      );
+      updateData.coverImage = coverUpload.secure_url;
+    }
+
+    // 4. Handle Gallery Images Update 
+    // (Note: This logic replaces the gallery. If you want to append, use $push or spread)
+    if (req.files?.gallery) {
+      let newGalleryUrls = [];
+      for (const file of req.files.gallery) {
+        const result = await uploadBufferToCloudinary(file.buffer, {
+          folder: `Ticketrise/events/${title || existingEvent.title}/gallery`,
+        });
+        newGalleryUrls.push(result.secure_url);
+      }
+      updateData.gallery = newGalleryUrls;
+    }
+
+    // 5. Update in Database
+    const updatedEvent = await Event.findByIdAndUpdate(
+      id,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Event updated successfully",
+      event: updatedEvent,
+    });
+    
+  } catch (error) {
+    console.error("Update Error:", error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 // ✅ Get All Events
 export const getEvents = async (req, res) => {
   try {
@@ -109,42 +186,6 @@ export const getEventByEventLinkId = async (req, res) => {
     const event = await Event.findOne({ eventLinkId: req.params.EventLinkId });
     if (!event) return res.status(404).json({ success: false, message: "Event not found" });
     return res.json({ success: true, event });
-  } catch (error) {
-    return res.status(500).json({ success: false, error: error.message });
-  }
-};
-
-// ✅ Update Event
-export const updateEvent = async (req, res) => {
-  try {
-    const updatedData = { ...req.body, updatedAt: Date.now() };
-
-    if (req.files?.coverImage) {
-      const coverUpload = await cloudinary.uploader.upload(
-        req.files.coverImage[0].path,
-        { folder: "events/cover" }
-      );
-      updatedData.coverImage = coverUpload.secure_url;
-    }
-
-    if (req.files?.gallery) {
-      let galleryUrls = [];
-      for (const file of req.files.gallery) {
-        const result = await cloudinary.uploader.upload(file.path, {
-          folder: "events/gallery",
-        });
-        galleryUrls.push(result.secure_url);
-      }
-      updatedData.gallery = galleryUrls;
-    }
-
-    const updatedEvent = await Event.findByIdAndUpdate(req.params.id, updatedData, {
-      new: true,
-    });
-
-    if (!updatedEvent) return res.status(404).json({ success: false, message: "Event not found" });
-
-    return res.json({ success: true, message: "Event updated successfully", event: updatedEvent });
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message });
   }
