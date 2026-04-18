@@ -37,6 +37,9 @@ export default function EventDetails() {
   const params = new URLSearchParams(window.location.search);
   const eventId = params.get("id");
 
+  // Determine if the event is in a terminal state (Locked)
+  const isLocked = events?.status === "Cancelled" || events?.status === "Completed";
+
   useEffect(() => {
     const fetchEvents = async () => {
       setIsLoading(true);
@@ -93,7 +96,14 @@ export default function EventDetails() {
     }
   };
 
-  // UPDATED: Filter logic using your DB fields (token and name)
+  const handleEditClick = () => {
+    if (isLocked) {
+      toast.error(`Cannot edit an event that is already ${events.status.toLowerCase()}.`);
+      return;
+    }
+    setShowEditForm(true);
+  };
+
   const filteredTickets = tickets.filter(ticket => 
     ticket.token?.toLowerCase().includes(search.toLowerCase()) ||
     ticket.name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -124,7 +134,12 @@ export default function EventDetails() {
             <StatusBadge status={events.status} />
           </div>
         </div>
-        <Button variant="outline" onClick={() => setShowEditForm(true)}>
+        
+        <Button 
+          variant="outline" 
+          onClick={handleEditClick}
+          className={cn(isLocked && "opacity-50 cursor-not-allowed bg-slate-50")}
+        >
           <Edit className="w-4 h-4 mr-2" /> Edit
         </Button>
       </div>
@@ -133,6 +148,13 @@ export default function EventDetails() {
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
         <div className="h-48 bg-slate-100 relative">
           {events.coverImage && <img src={events.coverImage} className="w-full h-full object-cover" />}
+          {isLocked && (
+            <div className="absolute inset-0 bg-slate-900/10 backdrop-blur-[1px] flex items-center justify-center">
+               <span className="bg-white/90 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider text-slate-900 shadow-sm border border-slate-200">
+                 Event {events.status}
+               </span>
+            </div>
+          )}
         </div>
         <div className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -142,7 +164,7 @@ export default function EventDetails() {
             </div>
             <div>
               <p className="text-sm text-slate-500 flex items-center gap-1"><MapPin className="w-4 h-4"/> Venue</p>
-              <p className="font-medium">{events.venue.city}, {events.venue.name}</p>
+              <p className="font-medium text-slate-900 line-clamp-1">{events.venue.city}, {events.venue.name}</p>
             </div>
             <div>
               <p className="text-sm text-slate-500 flex items-center gap-1"><Ticket className="w-4 h-4"/> Sold</p>
@@ -153,14 +175,14 @@ export default function EventDetails() {
               {events.status === "Published" ? (
                 <div className="flex items-center gap-2 mt-1">
                   <span className="text-xs text-blue-600 truncate max-w-[120px]">
-                    {import.meta.env.VITE_FRONTEND_URL}/{events.eventLinkId}
+                    {import.meta.env.VITE_FRONTEND_URL}/link/{events.eventLinkId}
                   </span>
                   <Button size="icon" variant="ghost" className="h-7 w-7 border" onClick={handleCopy}>
                     {copied ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />}
                   </Button>
                 </div>
               ) : (
-                <p className="text-xs text-slate-400 italic mt-1">Link available when published</p>
+                <p className="text-xs text-slate-400 italic mt-1 font-medium">Link available when published</p>
               )}
             </div>
           </div>
@@ -181,14 +203,17 @@ export default function EventDetails() {
               {events.tickets?.map((type, index) => (
                 <div key={index} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
                   <div>
-                    <h4 className="font-medium">{type.type}</h4>
+                    <h4 className="font-medium text-slate-900">{type.type}</h4>
                     <p className="text-sm text-slate-500">{type.sold} / {type.quantity} Sold</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold">₹{type.price}</p>
+                    <p className="font-bold text-slate-900">₹{type.price}</p>
                     <div className="w-32 h-1.5 bg-slate-200 rounded-full mt-2">
                       <div 
-                        className="h-full bg-slate-900 rounded-full" 
+                        className={cn(
+                          "h-full rounded-full transition-all duration-500",
+                          events.status === "Cancelled" ? "bg-slate-400" : "bg-slate-900"
+                        )}
                         style={{ width: `${(type.sold / type.quantity) * 100}%` }}
                       />
                     </div>
@@ -218,22 +243,22 @@ export default function EventDetails() {
                <div className="p-10 text-center text-slate-500">Loading tickets...</div>
             ) : filteredTickets.length > 0 ? (
               <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-slate-50 text-left text-xs text-slate-500 uppercase font-semibold">
+                <table className="w-full text-left border-collapse">
+                  <thead className="bg-slate-50 text-xs text-slate-500 uppercase font-semibold">
                     <tr>
-                      <th className="p-4">Token</th>
-                      <th className="p-4">Type</th>
-                      <th className="p-4">Purchaser</th>
-                      <th className="p-4">Qty</th>
-                      <th className="p-4">Price</th>
-                      <th className="p-4">Usage</th>
-                      <th className="p-4">Date</th>
+                      <th className="p-4 border-b border-slate-100">Token</th>
+                      <th className="p-4 border-b border-slate-100">Type</th>
+                      <th className="p-4 border-b border-slate-100">Purchaser</th>
+                      <th className="p-4 border-b border-slate-100 text-center">Qty</th>
+                      <th className="p-4 border-b border-slate-100">Price</th>
+                      <th className="p-4 border-b border-slate-100">Usage</th>
+                      <th className="p-4 border-b border-slate-100">Date</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredTickets.map(ticket => (
-                      <tr key={ticket._id} className="border-t border-slate-100 hover:bg-slate-50 transition-colors">
-                        <td className="p-4 font-mono font-medium text-slate-900">{ticket.token}</td>
+                      <tr key={ticket._id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                        <td className="p-4 font-mono font-medium text-slate-900 text-sm">{ticket.token}</td>
                         <td className="p-4 text-slate-600 text-sm">{ticket.ticketType}</td>
                         <td className="p-4">
                           <div className="text-sm font-medium text-slate-900">{ticket.name}</div>
@@ -264,8 +289,10 @@ export default function EventDetails() {
         </TabsContent>
       </Tabs>
       
-      {/* Edit Sheet remains the same */}
-      <Sheet open={showEditForm} onOpenChange={setShowEditForm}>
+      {/* Edit Sheet with guard check */}
+      <Sheet open={showEditForm} onOpenChange={(open) => {
+          if(!open) setShowEditForm(false);
+      }}>
         <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
           <SheetHeader><SheetTitle>Edit Event</SheetTitle></SheetHeader>
           <EventForm

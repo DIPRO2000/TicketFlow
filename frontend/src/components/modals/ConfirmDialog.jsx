@@ -8,17 +8,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, XCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export default function ConfirmDialog({ 
   open, 
   onOpenChange, 
   title, 
   description, 
-  confirmLabel = "Delete",
+  confirmLabel = "Confirm",
   cancelLabel = "Cancel",
   onConfirm,
-  variant = "destructive"
+  variant = "destructive" // "destructive" | "warning"
 }) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -28,6 +29,11 @@ export default function ConfirmDialog({
             {variant === "destructive" && (
               <div className="p-2 bg-rose-100 rounded-full">
                 <AlertTriangle className="w-5 h-5 text-rose-600" />
+              </div>
+            )}
+            {variant === "warning" && (
+              <div className="p-2 bg-amber-100 rounded-full">
+                <XCircle className="w-5 h-5 text-amber-600" />
               </div>
             )}
             <AlertDialogTitle>{title}</AlertDialogTitle>
@@ -40,7 +46,10 @@ export default function ConfirmDialog({
           <AlertDialogCancel>{cancelLabel}</AlertDialogCancel>
           <AlertDialogAction
             onClick={onConfirm}
-            className={variant === "destructive" ? "bg-rose-600 hover:bg-rose-700" : ""}
+            className={cn(
+              variant === "destructive" && "bg-rose-600 hover:bg-rose-700 text-white",
+              variant === "warning" && "bg-amber-600 hover:bg-amber-700 text-white"
+            )}
           >
             {confirmLabel}
           </AlertDialogAction>

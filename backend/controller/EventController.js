@@ -60,14 +60,14 @@ export const createEvent = async (req, res) => {
 
     await newEvent.save();
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "Event created successfully",
       event: newEvent,
     });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-    console.log("Error:",error)
+    console.log("Error:",error);
+    return res.status(500).json({ success: false, error: error.message });
   }
 };
 
@@ -75,9 +75,9 @@ export const createEvent = async (req, res) => {
 export const getEvents = async (req, res) => {
   try {
     const events = await Event.find().sort({ createdAt: -1 });
-    res.json({ success: true, events });
+    return res.json({ success: true, events });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   } 
 };
 
@@ -85,9 +85,9 @@ export const getEvents = async (req, res) => {
 export const getEventsbyOrgId = async (req, res) => {
   try {
     const events = await Event.find({ organizerID: req.params.id }).sort({ createdAt: -1 });
-    res.json({ success: true, events });
+    return res.json({ success: true, events });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 };
 
@@ -97,9 +97,9 @@ export const getEventById = async (req, res) => {
     const event = await Event.findById(req.params.EventId);
     if (!event)
       return res.status(404).json({ success: false, message: "Event not found" });
-    res.json({ success: true, event });
+    return res.json({ success: true, event });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 };
 
@@ -108,9 +108,9 @@ export const getEventByEventLinkId = async (req, res) => {
   try {
     const event = await Event.findOne({ eventLinkId: req.params.EventLinkId });
     if (!event) return res.status(404).json({ success: false, message: "Event not found" });
-    res.json({ success: true, event });
+    return res.json({ success: true, event });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 };
 
@@ -144,20 +144,33 @@ export const updateEvent = async (req, res) => {
 
     if (!updatedEvent) return res.status(404).json({ success: false, message: "Event not found" });
 
-    res.json({ success: true, message: "Event updated successfully", event: updatedEvent });
+    return res.json({ success: true, message: "Event updated successfully", event: updatedEvent });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 };
 
-// ✅ Delete Event
-export const deleteEvent = async (req, res) => {
+// ✅ Cancel Event
+export const cancelEvent = async (req, res) => {
   try {
-    const deletedEvent = await Event.findByIdAndDelete(req.params.id);
-    if (!deletedEvent) return res.status(404).json({ success: false, message: "Event not found" });
-    res.json({ success: true, message: "Event deleted successfully" });
+    // We update the status to "Cancelled" instead of deleting the document
+    const cancelledEvent = await Event.findByIdAndUpdate(
+      req.params.id, 
+      { status: "Cancelled" }, 
+      { new: true } // Returns the updated document
+    );
+
+    if (!cancelledEvent) {
+      return res.status(404).json({ success: false, message: "Event not found" });
+    }
+
+    return res.json({ 
+      success: true, 
+      message: "Event cancelled successfully", 
+      event: cancelledEvent 
+    });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 };
 
@@ -168,19 +181,19 @@ export const allTicket = async (req,res) => {
   try {
     if (!organizerID)
     {
-      res.status(400).json({success: false, message: "OrganizerId not provided"});
+      return res.status(400).json({success: false, message: "OrganizerId not provided"});
     }
 
     const tickets = await participant.find({ organizerID: organizerID});
     if (tickets == null || tickets.length == 0)
     {
-      res.status(404).json({ success:false, message: "No Ticket found yet or bought"});
+      return res.status(404).json({ success:false, message: "No Ticket found yet or bought"});
     }
 
-    res.status(200).json({success:true, message: "All Tickets found Successfully", tickets});
+    return res.status(200).json({success:true, message: "All Tickets found Successfully", tickets});
   } 
   catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 }
 

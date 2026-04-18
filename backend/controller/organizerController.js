@@ -49,7 +49,7 @@ export const loginOrganizer = async (req, res) => {
         const existingOrganizer = await Organizer.findOne({ email:email });
         //console.log(existingOrganizer);
         if (!existingOrganizer) {
-            return res.status(404).json({ message: `Incorrect ${email} provided` });
+            return res.status(404).json({ message: `No account found for ${email}` });
         }
 
         const passwordcheck=await bcrypt.compare(password,existingOrganizer.password)

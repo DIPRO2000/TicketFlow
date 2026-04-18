@@ -1,6 +1,6 @@
 // routes/event.js
 import express from "express";
-import { createEvent, getEvents, getEventsbyOrgId, getEventByEventLinkId, getEventById, allTicket, allTicketsofanEvent } from "../controller/EventController.js";
+import { createEvent, getEvents, getEventsbyOrgId, getEventByEventLinkId, getEventById,cancelEvent ,allTicket, allTicketsofanEvent } from "../controller/EventController.js";
 import { authOrganizerMiddleware } from "../middleware/auth.js";
 import upload from "../config/multer.js"; // your memoryStorage multer config
 
@@ -14,5 +14,7 @@ router.get("/getDetails/:EventId",getEventById);
 
 router.post("/getalltickets",allTicket)
 router.post("/getallticketsofevent",allTicketsofanEvent)
+
+router.patch("/cancel/:id", authOrganizerMiddleware ,cancelEvent)
 
 export default router;
