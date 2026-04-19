@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Ticket, ArrowLeft, Eye, EyeOff, Loader2, CheckCircle2 } from "lucide-react";
+import { Ticket, ArrowLeft, Eye, EyeOff, Loader2, CheckCircle2, Server, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner"; // Assuming you use sonner for better alerts
 
 const benefits = [
   "Unlimited events",
@@ -20,11 +21,34 @@ export default function Login() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isCheckingServer, setIsCheckingServer] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Function to wake up/check the free-tier server
+  const checkServerStatus = async () => {
+    setIsCheckingServer(true);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/`, {
+        method: "GET",
+      });
+      const data = await res.json();
+      
+      if (res.ok) {
+        alert(`✅ Server is Active: ${data}`);
+      } else {
+        alert("⚠️ Server responded with an error.");
+      }
+    } catch (err) {
+      alert("❌ Server is currently sleeping or unreachable. Please wait a few seconds and try again.");
+      console.error("Server check error:", err);
+    } finally {
+      setIsCheckingServer(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -41,7 +65,6 @@ export default function Login() {
       return;
     }
 
-    // Set loading BEFORE the fetch
     setIsLoading(true);
 
     try {
@@ -52,7 +75,7 @@ export default function Login() {
           email: formData.email,
           password: formData.password
         }),
-        credentials: "include" // This requires proper CORS config
+        credentials: "include"
       });
 
       const data = await res.json();
@@ -62,14 +85,13 @@ export default function Login() {
         return;
       }
 
-      // Login successful
       navigate("/Dashboard");
       
     } catch (error) {
-      setError("Network error. Please try again.");
+      setError("Network error. The server might be waking up. Try 'Check Server' below.");
       console.error("Login error:", error);
     } finally {
-      setIsLoading(false); // Always reset loading state
+      setIsLoading(false);
     }
   };
 
@@ -101,9 +123,9 @@ export default function Login() {
       
       {/* Right Side - Form */}
       <div className="flex-1 flex flex-col justify-center px-4 sm:px-6 lg:px-20 xl:px-24">
-        <div className="mx-auto w-full max-w-sm">
+        <div className="mx-auto w-full max-w-sm py-10">
           <Link 
-            to={("/")} 
+            to="/" 
             className="inline-flex items-center text-sm text-slate-500 hover:text-slate-700 mb-8"
           >
             <ArrowLeft className="w-4 h-4 mr-1" /> Back to home
@@ -117,7 +139,7 @@ export default function Login() {
           </div>
           
           <h1 className="text-2xl font-bold text-slate-900 mb-2">Sign in to your account</h1>
-          <p className="text-slate-600 mb-8">Get started with your free organizer account</p>
+          <p className="text-slate-600 mb-8">Get started with your organizer account</p>
           
           {error && (
             <div className="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-600">
@@ -126,7 +148,6 @@ export default function Login() {
           )}
           
           <form onSubmit={handleSubmit} className="space-y-4">
-            
             <div className="space-y-2">
               <Label htmlFor="email">Email address *</Label>
               <Input
@@ -175,15 +196,35 @@ export default function Login() {
             </Button>
           </form>
           
-          <p className="mt-6 text-center text-sm text-slate-600">
-            Don't have an account?{" "}
-            <Link to={("/Register")} className="font-medium text-slate-900 hover:underline">
-              Create one
-            </Link>
-          </p>
+          <div className="mt-8 pt-8 border-t border-slate-200">
+            <div className="flex flex-col gap-4">
+              <p className="text-center text-sm text-slate-600">
+                Don't have an account?{" "}
+                <Link to="/Register" className="font-medium text-slate-900 hover:underline">
+                  Create one
+                </Link>
+              </p>
+
+              {/* Server Wake-up Button */}
+              <Button 
+                variant="outline"
+                type="button"
+                onClick={checkServerStatus}
+                disabled={isCheckingServer}
+                className="w-full border-slate-200 text-slate-600 hover:bg-slate-50 text-xs h-9"
+              >
+                {isCheckingServer ? (
+                  <Loader2 className="w-3 h-3 mr-2 animate-spin" />
+                ) : (
+                  <Globe className="w-3 h-3 mr-2" />
+                )}
+                Check Server Status (Wake up)
+              </Button>
+            </div>
+          </div>
           
-          <p className="mt-4 text-center text-xs text-slate-500">
-            By creating an account, you agree to our Terms of Service and Privacy Policy
+          <p className="mt-6 text-center text-[10px] text-slate-400 leading-relaxed uppercase tracking-widest font-bold">
+            Secure Entry Management System
           </p>
         </div>
       </div>
